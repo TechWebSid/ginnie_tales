@@ -109,13 +109,9 @@ export default function StoryGenerator() {
             animate={{ y: [0, -40, 0], x: [0, 20, 0], rotate: [0, 360] }}
             transition={{ duration: 5 + i, repeat: Infinity }}
             className="absolute opacity-20"
-            style={{ 
-              top: `${Math.random() * 100}%`, 
-              left: `${Math.random() * 100}%`,
-              color: ['#FF6B9D', '#C084FC', '#60A5FA', '#FCD34D'][i % 4]
-            }}
+    
           >
-            {i % 2 === 0 ? <Star size={Math.random() * 40 + 20} /> : <Cloud size={Math.random() * 50 + 20} />}
+            
           </motion.div>
         ))}
       </div>

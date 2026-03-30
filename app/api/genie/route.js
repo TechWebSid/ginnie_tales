@@ -113,76 +113,73 @@ And in that instant, the story was no longer just a dream — it had become a le
     // =========================
     // 🎨 STEP 2: IMAGE (MAX FACE ACCURACY)
     // =========================
-    console.log("🎨 Generating image...");
+    // =========================
+// 🎨 STEP 2: IMAGE (BALANCED + NATURAL)
+// =========================
+console.log("🎨 Generating image...");
 
-    let imageUrl = "";
+let imageUrl = "";
 
-    try {
-      const output = await replicate.run(
-        "bytedance/flux-pulid:8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b",
-        {
-          input: {
-            prompt: `
-Ultra realistic image of the SAME person from the reference image.
-
-CRITICAL IDENTITY RULES:
-- This is the SAME real human
-- DO NOT change identity
-- Preserve exact facial features (eyes, nose, lips, jawline)
-- Must look like the same person
-
-FOCUS:
-- EXTREME close-up portrait
-- face occupies most of the frame
-- sharp facial details, skin texture visible
-- eyes clearly visible
+try {
+  const output = await replicate.run(
+    "bytedance/flux-pulid:8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b",
+    {
+      input: {
+        prompt: `
+A cinematic photo of the SAME person from the reference image.
 
 SCENE:
 ${storyPrompt}
 
 IMPORTANT:
-- Identity is MORE important than the scene
-- If conflict, prioritize face accuracy
+- Must resemble the same person
+- Keep facial identity natural (not forced)
+- Maintain hairstyle, face shape, skin tone
 
 STYLE:
-- ultra realistic
-- cinematic lighting
-- 8k detail
-- professional photography
-            `,
-            main_face_image: imageDataUrl,
+- realistic photography
+- natural lighting
+- cinematic composition
+- medium shot (not extreme close-up)
+- storytelling frame
 
-            // 🔥 MAX IDENTITY SETTINGS
-            num_outputs: 1,
-            guidance_scale: 6.5,
-            num_inference_steps: 45,
-            start_step: 2,
+MOOD:
+- warm, emotional, natural
+        `,
 
-            negative_prompt: `
-cartoon, anime, blurry face, distorted face,
-different person, extra face, multiple faces,
+        main_face_image: imageDataUrl,
+
+        // ✅ BALANCED SETTINGS
+        num_outputs: 1,
+        guidance_scale: 3.8,   // 🔥 sweet spot (not too rigid)
+        num_inference_steps: 28,
+        start_step: 5,         // 🔥 more natural blending
+
+        negative_prompt: `
+cartoon, anime, over-sharpened face,
+plastic skin, distorted face, extra limbs,
 low quality, watermark
-            `,
-          },
-        }
-      );
-
-      console.log("RAW OUTPUT:", output);
-
-      if (Array.isArray(output) && output.length > 0) {
-        const img = output[0];
-
-        if (typeof img?.url === "function") {
-          imageUrl = img.url();
-        } else if (typeof img === "string") {
-          imageUrl = img;
-        } else if (img?.url) {
-          imageUrl = img.url;
-        }
-      }
-    } catch (err) {
-      console.error("❌ Image error:", err);
+        `,
+      },
     }
+  );
+
+  console.log("RAW OUTPUT:", output);
+
+  if (Array.isArray(output) && output.length > 0) {
+    const img = output[0];
+
+    if (typeof img?.url === "function") {
+      imageUrl = img.url();
+    } else if (typeof img === "string") {
+      imageUrl = img;
+    } else if (img?.url) {
+      imageUrl = img.url;
+    }
+  }
+} catch (err) {
+  console.error("❌ Image error:", err);
+}
 
     if (!imageUrl) {
       imageUrl = "https://placehold.co/600x800/png?text=Image+Failed";
