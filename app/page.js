@@ -4,6 +4,7 @@ export default function Home() {
   return (
     <main className="bg-black overflow-x-hidden">
       <GinnieHero />
+      
     </main>
   );
 }
