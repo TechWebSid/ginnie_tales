@@ -53,7 +53,7 @@ You are a children's story writer.
 
 USER IDEA: ${storyPrompt}
 
-Write a 150–200 word magical story:
+Write a 50–60 word magical story:
 - Third person
 - Emotional + engaging
 - Beginning, middle, end
