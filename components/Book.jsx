@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, ArrowLeft, ArrowRight, BookOpen, Star, Moon, Sun } from "lucide-react";
 
 /**
- * Helper to split text into readable chunks without cutting words in half.
+ * Splits text into kid-friendly chunks (shorter pages for easier reading).
  */
-function splitTextIntoPages(text, limit = 600) {
-  if (!text) return ["The pages are blank..."];
+function splitTextIntoPages(text, limit = 500) {
+  if (!text) return ["Once upon a time, a new magic story was waiting to be told..."];
   const words = text.split(" ");
   const pages = [];
   let currentPage = "";
@@ -24,178 +25,165 @@ function splitTextIntoPages(text, limit = 600) {
   return pages;
 }
 
-export default function ModernBook({ story, image }) {
+export default function MagicBook({ story, image }) {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
 
   const textPages = splitTextIntoPages(story);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#020617] p-4 sm:p-8 selection:bg-amber-200">
+    <div className="flex flex-col items-center justify-center p-2 sm:p-6 w-full max-w-5xl mx-auto selection:bg-pink-200">
       
       {!open ? (
-        /* --- PREMIUM CLOSED COVER --- */
+        /* --- MAGICAL CLOSED COVER --- */
         <motion.div
-          layoutId="book-transform"
+          layoutId="book-magic"
           onClick={() => setOpen(true)}
-          whileHover={{ scale: 1.02, rotateY: -8, x: 10 }}
-          className="relative w-[340px] h-[480px] cursor-pointer"
-          style={{ perspective: "1200px", transformStyle: "preserve-3d" }}
+          whileHover={{ scale: 1.05, rotate: -2 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative w-[300px] h-[420px] cursor-pointer group"
         >
-          {/* Spine Detail */}
-          <div className="absolute left-0 inset-y-0 w-8 bg-black/40 rounded-l-lg z-20 shadow-[inset_-4px_0_10px_rgba(0,0,0,0.5)] border-r border-white/5" />
+          {/* Animated Glow behind the book */}
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-400 via-purple-500 to-blue-500 rounded-[2.5rem] blur-2xl opacity-40 group-hover:opacity-70 transition-opacity" />
           
-          <div className="w-full h-full bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-lg shadow-[30px_30px_60px_-15px_rgba(0,0,0,0.7)] flex flex-col items-center justify-center p-10 border border-white/10 relative overflow-hidden">
-            {/* Leather Texture Overlay */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/leather.png')]" />
+          <div className="relative w-full h-full bg-white rounded-[2.5rem] shadow-2xl border-[12px] border-white overflow-hidden flex flex-col items-center justify-center p-6 text-center">
+            {/* Cover Art Background */}
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-purple-50" />
             
-            <div className="border-[1px] border-amber-500/30 p-8 text-center z-10 outline outline-1 outline-amber-500/20 outline-offset-8">
-              <h1 className="text-3xl font-serif font-bold text-amber-100 tracking-[0.25em] uppercase leading-tight">
-                Your <br/> Story
-              </h1>
-              <div className="h-[1px] w-16 bg-amber-500/50 mx-auto my-6" />
-              <p className="text-amber-200/40 text-[10px] tracking-[0.4em] uppercase font-light">Collector's Edition</p>
+            {/* Illustration Preview */}
+            <div className="relative z-10 w-full h-48 bg-slate-100 rounded-2xl mb-6 overflow-hidden border-4 border-white shadow-inner">
+               <img src={image} alt="Cover" className="w-full h-full object-cover" />
             </div>
-            
-            <div className="absolute bottom-12 flex flex-col items-center gap-2">
-                <div className="w-1 h-8 bg-gradient-to-b from-amber-500/0 via-amber-500/50 to-amber-500/0" />
-                <p className="text-white/30 text-xs font-serif italic tracking-widest">Click to Open</p>
+
+            <div className="relative z-10">
+              <h1 className="text-3xl font-[1000] text-slate-800 leading-tight mb-2">
+                MY <span className="text-pink-500">MAGIC</span><br/>ADVENTURE
+              </h1>
+              <div className="flex justify-center gap-2 mb-4">
+                <Star className="text-yellow-400 fill-yellow-400 w-5 h-5" />
+                <Star className="text-yellow-400 fill-yellow-400 w-5 h-5" />
+                <Star className="text-yellow-400 fill-yellow-400 w-5 h-5" />
+              </div>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-100 py-2 px-4 rounded-full">
+                Tap to Open ✨
+              </p>
             </div>
           </div>
         </motion.div>
       ) : (
-        /* --- OPEN BOOK SPREAD --- */
-        <div className="flex flex-col items-center gap-8 w-full max-w-6xl">
+        /* --- OPEN MAGIC SPREAD --- */
+        <div className="flex flex-col items-center gap-6 w-full">
+          
           <motion.div
-            layoutId="book-transform"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative flex flex-col md:flex-row w-full h-[700px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] rounded-sm overflow-hidden bg-white"
+            layoutId="book-magic"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative flex flex-col lg:flex-row w-full min-h-[550px] lg:h-[650px] bg-white rounded-[3rem] shadow-[0_30px_60px_rgba(0,0,0,0.15)] border-[12px] border-white overflow-hidden"
           >
-            {/* THE CENTER SPINE GUM (Visual Detail) */}
-            <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[4px] -ml-[2px] bg-black/10 z-40 shadow-[0_0_15px_rgba(0,0,0,0.3)]" />
-            
-            {/* LEFT PAGE: ILLUSTRATION */}
-            <div className="w-full md:w-1/2 h-1/2 md:h-full bg-white flex flex-col relative overflow-hidden border-r border-slate-100">
-               <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]" />
-               
-               {/* Spine Shadow for Left Page */}
-               <div className="hidden md:block absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/15 to-transparent z-10 pointer-events-none" />
-
-               <div className="h-full w-full p-8 md:p-14 flex items-center justify-center">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={page}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                      className="w-full h-full relative"
-                    >
-                      <img
-                        src={image || "/api/placeholder/400/600"}
-                        alt="Story Illustration"
-                        className="w-full h-full object-cover rounded shadow-2xl border-[12px] border-white ring-1 ring-black/5"
-                      />
-                    </motion.div>
-                  </AnimatePresence>
-               </div>
+            {/* LEFT PAGE: FULL IMAGE */}
+            <div className="w-full lg:w-1/2 h-[300px] lg:h-full relative overflow-hidden bg-slate-50">
+               <AnimatePresence mode="wait">
+                 <motion.img
+                    key={image}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    src={image}
+                    alt="Story Scene"
+                    className="w-full h-full object-cover"
+                 />
+               </AnimatePresence>
+               {/* Decorative corner curve */}
+               <div className="absolute top-0 right-0 w-12 h-12 bg-white rounded-bl-3xl lg:hidden" />
             </div>
 
-            {/* RIGHT PAGE: TEXT CONTENT */}
-            <div className="w-full md:w-1/2 h-1/2 md:h-full bg-[#fdfbf7] flex flex-col relative">
-               {/* Paper Texture Overlay */}
-               <div className="absolute inset-0 opacity-30 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')]" />
-               
-               {/* Spine Shadow for Right Page */}
-               <div className="hidden md:block absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black/15 to-transparent z-30 pointer-events-none" />
+            {/* THE SPINE LINE */}
+            <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-2 -ml-1 bg-slate-100 z-10 shadow-inner" />
 
-               {/* Bottom Fade Mask (Fixes the "cut-off" look) */}
-               <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#fdfbf7] via-[#fdfbf7]/80 to-transparent z-20 pointer-events-none" />
+            {/* RIGHT PAGE: STORY TEXT */}
+            <div className="w-full lg:w-1/2 h-full flex flex-col p-8 lg:p-12 relative bg-[#fffdfa]">
+               {/* Confetti Background Detail */}
+               <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
 
-               {/* SCROLLABLE TEXT AREA */}
-               <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 px-8 md:px-16 pt-16 md:pt-24 pb-32">
-                  <span className="text-8xl font-serif text-indigo-900/5 absolute top-10 left-10 select-none">“</span>
-                  
+               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
+                  <div className="flex items-center gap-2 mb-6">
+                    <BookOpen className="text-purple-500" size={20} />
+                    <span className="text-xs font-black text-purple-300 uppercase tracking-widest">Ginnie Tales</span>
+                  </div>
+
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={page}
-                      initial={{ opacity: 0, x: 20 }}
+                      initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="relative"
+                      exit={{ opacity: 0, x: -10 }}
                     >
-                      <p className="text-[19px] md:text-[22px] font-serif text-slate-800 leading-[1.85] first-letter:text-7xl first-letter:font-bold first-letter:mr-3 first-letter:float-left first-letter:text-indigo-950 first-letter:leading-[0.7] first-letter:mt-2">
+                      <p className="text-xl lg:text-2xl font-bold text-slate-700 leading-relaxed first-letter:text-5xl first-letter:text-pink-500 first-letter:font-black first-letter:mr-2">
                         {textPages[page]}
                       </p>
                     </motion.div>
                   </AnimatePresence>
                </div>
 
-               {/* PAGE FOOTER / PAGINATION */}
-               <div className="absolute bottom-0 left-0 right-0 p-8 px-16 bg-gradient-to-t from-[#fdfbf7] to-[#fdfbf7]/0 z-30 flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-sans tracking-[0.3em] text-slate-400 uppercase">Chronicle</span>
-                    <div className="h-[1px] w-8 bg-indigo-900/20 mt-1" />
+               {/* PAGE FOOTER */}
+               <div className="mt-8 flex justify-between items-center border-t-2 border-slate-50 pt-6">
+                  <div className="flex gap-1">
+                    {[...Array(textPages.length)].map((_, i) => (
+                      <div key={i} className={`h-2 rounded-full transition-all ${i === page ? 'w-6 bg-pink-500' : 'w-2 bg-slate-200'}`} />
+                    ))}
                   </div>
-                  <span className="text-sm font-serif italic text-slate-500 tracking-widest">
-                    {page + 1} <span className="mx-2 opacity-30">/</span> {textPages.length}
+                  <span className="text-sm font-black text-slate-300">
+                    {page + 1} / {textPages.length}
                   </span>
                </div>
             </div>
           </motion.div>
 
-          {/* --- MINIMALIST NAVIGATION CONTROLS --- */}
-          <div className="flex items-center gap-10 bg-slate-900/40 backdrop-blur-xl px-8 py-4 rounded-full border border-white/10 shadow-2xl">
-            <button
+          {/* --- NAVIGATION CONTROLS --- */}
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}
-              className="group flex items-center gap-2 text-white/50 hover:text-white disabled:opacity-10 transition-all"
+              className="p-4 bg-white rounded-2xl shadow-lg border-b-4 border-slate-200 text-slate-600 disabled:opacity-30 transition-all hover:bg-slate-50"
             >
-              <svg className="w-6 h-6 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="text-xs uppercase tracking-widest hidden sm:block">Back</span>
-            </button>
+              <ArrowLeft size={24} />
+            </motion.button>
 
-            <button 
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               onClick={() => { setOpen(false); setPage(0); }}
-              className="text-[10px] uppercase tracking-[0.4em] text-amber-500/60 hover:text-amber-400 transition-colors font-bold"
+              className="px-8 py-4 bg-white rounded-2xl shadow-lg border-b-4 border-slate-200 font-black text-xs text-slate-400 tracking-widest hover:text-pink-500 transition-colors"
             >
-              Close Journal
-            </button>
+              CLOSE BOOK
+            </motion.button>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               disabled={page >= textPages.length - 1}
               onClick={() => setPage((p) => p + 1)}
-              className="group flex items-center gap-2 text-white/50 hover:text-white disabled:opacity-10 transition-all"
+              className="p-4 bg-pink-500 rounded-2xl shadow-lg border-b-4 border-pink-700 text-white disabled:opacity-30 transition-all hover:bg-pink-400"
             >
-              <span className="text-xs uppercase tracking-widest hidden sm:block">Next</span>
-              <svg className="w-6 h-6 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+              <ArrowRight size={24} />
+            </motion.button>
           </div>
         </div>
       )}
 
-      {/* Global CSS for the hidden but functional scrollbar */}
+      {/* Styles for the kid-friendly scrollbar */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
+          width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(0, 0, 0, 0.05);
+          background: #f1f1f1;
           border-radius: 10px;
         }
-        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-          background: rgba(0, 0, 0, 0.1);
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
         }
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(0, 0, 0, 0.05) transparent;
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
         }
       `}</style>
     </div>
