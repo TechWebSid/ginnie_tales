@@ -47,7 +47,7 @@ export async function POST(req) {
       : `data:image/png;base64,${imageBase64}`;
 
     // =========================
-    // 🧠 STEP 1: STORY (DYNAMIC + LONG)
+    // 🧠 STEP 1: STORY (LONG + DYNAMIC)
     // =========================
     console.log("📝 Generating story...");
 
@@ -88,11 +88,9 @@ RULES:
       console.error("❌ Gemini failed:", err);
     }
 
-    // =========================
-    // ENSURE STORY LENGTH
-    // =========================
+    // Ensure story is long enough
     if (!storyText || storyText.split(" ").length < 200) {
-      console.log("⚠️ Story too short → using fallback");
+      console.log("⚠️ Story too short → fallback");
 
       storyText = `
 The journey began on a quiet morning, when everything felt ordinary — yet something in the air hinted at change. The young dreamer stepped forward, unaware that this moment would shape everything ahead.
@@ -109,7 +107,7 @@ And as the echoes of that moment faded into memory, one truth remained: this was
 
     storyText = storyText.trim();
 
-    console.log("✅ Story length:", storyText.split(" ").length);
+    console.log("✅ Story words:", storyText.split(" ").length);
 
     // =========================
     // ⏳ DELAY (RATE LIMIT SAFE)
@@ -117,7 +115,7 @@ And as the echoes of that moment faded into memory, one truth remained: this was
     await new Promise((r) => setTimeout(r, 5000));
 
     // =========================
-    // 🎨 STEP 2: IMAGE (FLUX-PULID)
+    // 🎨 STEP 2: IMAGE (HIGH FACE ACCURACY)
     // =========================
     console.log("🎨 Generating image...");
 
@@ -129,35 +127,45 @@ And as the echoes of that moment faded into memory, one truth remained: this was
         {
           input: {
             prompt: `
-A cinematic scene of a character.
+Ultra realistic cinematic image of the SAME person from the reference image.
+
+CRITICAL:
+- Keep exact same face identity
+- Preserve facial features (eyes, nose, lips, jawline)
+- This is the SAME person, not a different character
 
 SCENE:
 ${storyPrompt}
 
 STYLE:
-- realistic
+- ultra realistic
 - cinematic lighting
-- detailed
-- professional composition
+- highly detailed
+- sharp focus on face
+- 8k quality
 
-IMPORTANT:
-keep the SAME face identity as reference image
+CAMERA:
+- portrait shot
+- face clearly visible
             `,
             main_face_image: imageDataUrl,
+
+            // 🔥 Identity boosting params
             num_outputs: 1,
-            guidance_scale: 3.5,
-            num_inference_steps: 28,
-            negative_prompt:
-              "low quality, blurry, distorted face, extra limbs, watermark",
+            guidance_scale: 5.5,
+            num_inference_steps: 40,
+            start_step: 3,
+
+            negative_prompt: `
+cartoon, anime, blurry, distorted face, different person,
+multiple faces, extra limbs, watermark, low quality
+            `,
           },
         }
       );
 
       console.log("RAW OUTPUT:", output);
 
-      // =========================
-      // IMAGE EXTRACTION FIX
-      // =========================
       if (Array.isArray(output) && output.length > 0) {
         const img = output[0];
 
@@ -173,14 +181,12 @@ keep the SAME face identity as reference image
       console.error("❌ Image error:", err);
     }
 
-    // =========================
-    // IMAGE FALLBACK
-    // =========================
+    // fallback image
     if (!imageUrl) {
       imageUrl = "https://placehold.co/600x800/png?text=Image+Failed";
     }
 
-    console.log("✅ Image URL:", imageUrl);
+    console.log("✅ Image:", imageUrl);
 
     // =========================
     // RESPONSE
@@ -192,7 +198,7 @@ keep the SAME face identity as reference image
     });
 
   } catch (error) {
-    console.error("FINAL ERROR:", error);
+    console.error("❌ FINAL ERROR:", error);
 
     return Response.json({
       success: false,
