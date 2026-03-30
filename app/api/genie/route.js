@@ -68,13 +68,12 @@ RULES:
 - MUST be 300–500 words
 - Third person narration
 - Strong beginning, middle, and ending
-- Rich descriptions (environment, emotions, actions)
-- Match the character to the uploaded image
-- Story should feel like a real storybook
+- Rich descriptions
+- Match character to the uploaded image
 - NO title
           `,
           max_tokens: 1000,
-          temperature: 0.8,
+          temperature: 0.75,
           top_p: 0.95,
         },
       });
@@ -88,20 +87,17 @@ RULES:
       console.error("❌ Gemini failed:", err);
     }
 
-    // Ensure story is long enough
     if (!storyText || storyText.split(" ").length < 200) {
-      console.log("⚠️ Story too short → fallback");
-
       storyText = `
-The journey began on a quiet morning, when everything felt ordinary — yet something in the air hinted at change. The young dreamer stepped forward, unaware that this moment would shape everything ahead.
+A young dreamer stood at the edge of destiny, heart pounding with hope and fear. The world seemed vast and uncertain, yet something deep within urged them forward.
 
-As the world unfolded around them, challenges appeared one after another. Doubts crept in, whispering hesitation, but courage answered louder. With every step, confidence grew, and fear slowly faded into determination.
+With each step, challenges appeared, testing courage and strength. Doubt whispered, but determination answered louder. The journey grew intense, pushing limits beyond imagination.
 
-Then came the defining moment. The challenge that seemed impossible now stood directly in front of them. The world held its breath. With a deep inhale, they moved forward — steady, focused, unstoppable.
+Then came the defining moment — the challenge that would decide everything. The air grew still as focus sharpened. With unwavering belief, they moved forward and faced it head-on.
 
-What followed was nothing short of extraordinary. The effort, the belief, the persistence — it all came together in a single moment of brilliance. The impossible was achieved.
+What followed changed everything. The impossible became possible, and the dream turned real. The moment echoed with triumph, marking the beginning of something far greater.
 
-And as the echoes of that moment faded into memory, one truth remained: this was only the beginning of a much greater story.
+And in that instant, the story was no longer just a dream — it had become a legend.
       `;
     }
 
@@ -110,12 +106,12 @@ And as the echoes of that moment faded into memory, one truth remained: this was
     console.log("✅ Story words:", storyText.split(" ").length);
 
     // =========================
-    // ⏳ DELAY (RATE LIMIT SAFE)
+    // ⏳ DELAY
     // =========================
     await new Promise((r) => setTimeout(r, 5000));
 
     // =========================
-    // 🎨 STEP 2: IMAGE (HIGH FACE ACCURACY)
+    // 🎨 STEP 2: IMAGE (MAX FACE ACCURACY)
     // =========================
     console.log("🎨 Generating image...");
 
@@ -127,38 +123,45 @@ And as the echoes of that moment faded into memory, one truth remained: this was
         {
           input: {
             prompt: `
-Ultra realistic cinematic image of the SAME person from the reference image.
+Ultra realistic image of the SAME person from the reference image.
 
-CRITICAL:
-- Keep exact same face identity
-- Preserve facial features (eyes, nose, lips, jawline)
-- This is the SAME person, not a different character
+CRITICAL IDENTITY RULES:
+- This is the SAME real human
+- DO NOT change identity
+- Preserve exact facial features (eyes, nose, lips, jawline)
+- Must look like the same person
+
+FOCUS:
+- EXTREME close-up portrait
+- face occupies most of the frame
+- sharp facial details, skin texture visible
+- eyes clearly visible
 
 SCENE:
 ${storyPrompt}
 
+IMPORTANT:
+- Identity is MORE important than the scene
+- If conflict, prioritize face accuracy
+
 STYLE:
 - ultra realistic
 - cinematic lighting
-- highly detailed
-- sharp focus on face
-- 8k quality
-
-CAMERA:
-- portrait shot
-- face clearly visible
+- 8k detail
+- professional photography
             `,
             main_face_image: imageDataUrl,
 
-            // 🔥 Identity boosting params
+            // 🔥 MAX IDENTITY SETTINGS
             num_outputs: 1,
-            guidance_scale: 5.5,
-            num_inference_steps: 40,
-            start_step: 3,
+            guidance_scale: 6.5,
+            num_inference_steps: 45,
+            start_step: 2,
 
             negative_prompt: `
-cartoon, anime, blurry, distorted face, different person,
-multiple faces, extra limbs, watermark, low quality
+cartoon, anime, blurry face, distorted face,
+different person, extra face, multiple faces,
+low quality, watermark
             `,
           },
         }
@@ -181,12 +184,11 @@ multiple faces, extra limbs, watermark, low quality
       console.error("❌ Image error:", err);
     }
 
-    // fallback image
     if (!imageUrl) {
       imageUrl = "https://placehold.co/600x800/png?text=Image+Failed";
     }
 
-    console.log("✅ Image:", imageUrl);
+    console.log("✅ Image URL:", imageUrl);
 
     // =========================
     // RESPONSE
