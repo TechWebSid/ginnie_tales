@@ -4,14 +4,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowLeft, ArrowRight, CheckCircle2, FileDown, BookOpen, RotateCcw } from "lucide-react";
 
-// NOTE: We removed splitTextIntoPages because 'pages' is now an array from the API
 export default function MagicBook({ pages = [], images = [], title = "MY MAGIC ADVENTURE" }) {
-  const [view, setView] = useState("closed-front"); // "closed-front" | "open" | "closed-back"
+  const [view, setView] = useState("closed-front");
   const [pageIndex, setPageIndex] = useState(0);
 
-  // Safety check: if pages aren't loaded yet
   if (!pages || pages.length === 0) {
-    return <div className="text-slate-500 font-bold">Magical pages are loading...</div>;
+    return <div className="text-slate-500 font-bold p-10">Magical pages are loading...</div>;
   }
 
   const handleNext = () => {
@@ -62,9 +60,10 @@ export default function MagicBook({ pages = [], images = [], title = "MY MAGIC A
             .glass-box { background: rgba(0, 0, 0, 0.7); padding: 60px; border-radius: 40px; text-align: center; border: 2px solid rgba(255,255,255,0.2); width: 60%; z-index: 10; color: white; }
             .img-side { width: 50%; height: 100%; }
             .img-side img { width: 100%; height: 100%; object-fit: cover; }
-            .text-side { width: 50%; height: 100%; background: #FFFCF9; padding: 80px; display: flex; flex-direction: column; justify-content: center; position: relative; }
-            .story-content { font-size: 24px; line-height: 1.6; color: #1a202c; }
-            .dropcap { font-size: 60px; font-weight: 900; color: #ec4899; float: left; margin-right: 10px; line-height: 1; }
+            .text-side { width: 50%; height: 100%; background: #FFFCF9; padding: 80px; display: flex; flex-direction: column; justify-content: space-between; position: relative; border-left: 2px solid #eee; }
+            .story-content { font-size: 26px; line-height: 1.6; color: #1a202c; flex-grow: 1; margin-bottom: 40px; }
+            .bottom-border { border-bottom: 4px solid #ec4899; width: 100px; margin-bottom: 20px; }
+            .dropcap { font-size: 70px; font-weight: 900; color: #ec4899; float: left; margin-right: 15px; line-height: 0.8; padding-top: 10px; }
             .back-cover { width: 100%; height: 100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; }
           </style>
         </head>
@@ -74,8 +73,13 @@ export default function MagicBook({ pages = [], images = [], title = "MY MAGIC A
             <div class="page">
               <div class="img-side"><img src="${images[i] || images[0]}" /></div>
               <div class="text-side">
-                <div class="story-content"><span class="dropcap">${text.charAt(0)}</span>${text.substring(1)}</div>
-                <div style="position:absolute; bottom:40px; right:40px; font-size:12px; color:#cbd5e1;">PAGE ${i + 1} OF 4</div>
+                <div class="story-content">
+                  <span class="dropcap">${text.charAt(0)}</span>${text.substring(1)}
+                </div>
+                <div>
+                   <div class="bottom-border"></div>
+                   <div style="font-size:14px; color:#94a3b8; font-weight: bold;">PAGE ${i + 1} OF ${pages.length}</div>
+                </div>
               </div>
             </div>
           `).join('')}
@@ -85,25 +89,42 @@ export default function MagicBook({ pages = [], images = [], title = "MY MAGIC A
     `;
     
     try {
-      const res = await fetch("/api/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ html }) });
-      const blob = await res.blob();
+      const response = await fetch("/api/pdf", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ html }) 
+      });
+
+      if (!response.ok) throw new Error("PDF generation failed");
+
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = "Magic_Story.pdf"; a.click();
-    } catch (err) { console.error(err); }
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${title.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) { 
+      console.error("Download Error:", err);
+      alert("Oops! The magic printer is stuck. Please try again.");
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 w-full max-w-6xl mx-auto min-h-[85vh]">
+    <div className="flex flex-col items-center justify-center p-4 w-full max-w-6xl mx-auto min-h-[90vh]">
       <AnimatePresence mode="wait">
         
         {/* --- FRONT COVER --- */}
         {view === "closed-front" && (
           <motion.div key="front" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ rotateY: -90, opacity: 0 }}
-            className="relative w-[360px] h-[520px] shadow-2xl rounded-[3rem] p-3 bg-[#ec4899]"
+            className="relative w-[360px] h-[520px] shadow-2xl rounded-[3rem] p-3 bg-[#ec4899] cursor-pointer"
+            onClick={handleNext}
           >
             <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden">
               <img src={images[0]} className="absolute inset-0 w-full h-full object-cover" alt="Cover" />
-              <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/20">
+              <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/30">
                 <div className="bg-white/10 backdrop-blur-xl border border-white/30 w-full py-16 rounded-[2.5rem] flex flex-col items-center">
                   <Sparkles className="text-[#fde047] w-12 h-12 mb-4" />
                   <h1 className="text-2xl font-black text-white text-center uppercase px-4 leading-tight">{title}</h1>
@@ -116,9 +137,10 @@ export default function MagicBook({ pages = [], images = [], title = "MY MAGIC A
         {/* --- INSIDE PAGES --- */}
         {view === "open" && (
           <motion.div key="open" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl flex flex-col lg:flex-row overflow-hidden border-[12px] border-white"
+            className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl flex flex-col lg:flex-row overflow-hidden border-[12px] border-white min-h-[600px]"
           >
-            <div className="w-full lg:w-1/2 h-[350px] lg:h-[650px]">
+            {/* Left Side: Image */}
+            <div className="w-full lg:w-1/2 h-[350px] lg:h-[650px] bg-slate-100">
               <AnimatePresence mode="wait">
                 <motion.img 
                   key={pageIndex}
@@ -130,22 +152,34 @@ export default function MagicBook({ pages = [], images = [], title = "MY MAGIC A
                 />
               </AnimatePresence>
             </div>
-            <div className="w-full lg:w-1/2 h-[500px] lg:h-[650px] flex flex-col bg-[#FFFCF9] p-10 lg:p-16 justify-center relative">
-              <div className="flex-1 flex items-center">
+
+            {/* Right Side: Text (Fixed Length, No Scrolling) */}
+            <div className="w-full lg:w-1/2 h-[500px] lg:h-[650px] flex flex-col bg-[#FFFCF9] p-10 lg:p-16 relative">
+              <div className="flex-1 flex flex-col justify-start overflow-hidden">
                 <AnimatePresence mode="wait">
-                  <motion.p key={pageIndex} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
-                    className="text-2xl lg:text-3xl font-medium text-[#1e293b] leading-[1.8] first-letter:text-7xl first-letter:text-[#ec4899] first-letter:font-black first-letter:mr-3 first-letter:float-left first-letter:leading-[0.8]"
+                  <motion.div 
+                    key={pageIndex} 
+                    initial={{ opacity: 0, x: 10 }} 
+                    animate={{ opacity: 1, x: 0 }}
+                    className="h-full"
                   >
-                    {pages[pageIndex]}
-                  </motion.p>
+                    <p className="text-xl lg:text-2xl font-medium text-[#1e293b] leading-[1.7] first-letter:text-7xl first-letter:text-[#ec4899] first-letter:font-black first-letter:mr-3 first-letter:float-left first-letter:leading-[0.8] line-clamp-[12]">
+                      {pages[pageIndex]}
+                    </p>
+                  </motion.div>
                 </AnimatePresence>
               </div>
-              <div className="mt-8 pt-6 border-t flex justify-between items-center text-[#94a3b8] font-bold text-xs uppercase tracking-widest">
-                <span>PAGE {pageIndex + 1} / {pages.length}</span>
-                <div className="flex gap-2">
-                  {pages.map((_, i) => (
-                    <div key={i} className={`h-2 rounded-full transition-all ${i === pageIndex ? 'bg-[#ec4899] w-8' : 'bg-slate-200 w-2'}`} />
-                  ))}
+
+              {/* Fixed Bottom Section */}
+              <div className="mt-4">
+                <div className="w-20 border-b-4 border-[#ec4899] mb-4"></div>
+                <div className="flex justify-between items-center text-[#94a3b8] font-bold text-xs uppercase tracking-widest">
+                  <span>PAGE {pageIndex + 1} OF {pages.length}</span>
+                  <div className="flex gap-1.5">
+                    {pages.map((_, i) => (
+                      <div key={i} className={`h-1.5 rounded-full transition-all ${i === pageIndex ? 'bg-[#ec4899] w-6' : 'bg-slate-200 w-1.5'}`} />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -155,39 +189,54 @@ export default function MagicBook({ pages = [], images = [], title = "MY MAGIC A
         {/* --- BACK COVER --- */}
         {view === "closed-back" && (
           <motion.div key="back" initial={{ rotateY: 90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
-            className="w-[360px] h-[520px] bg-[#1e293b] rounded-l-[3rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center"
+            className="w-[360px] h-[520px] bg-[#1e293b] rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center"
           >
             <div className="w-20 h-20 bg-[#ec4899] rounded-full flex items-center justify-center mb-6 shadow-lg shadow-[#ec4899]/20">
               <CheckCircle2 className="text-white w-10 h-10" />
             </div>
             <h2 className="text-white text-4xl font-black uppercase italic tracking-tighter">The End</h2>
+            <button onClick={resetBook} className="mt-8 text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-bold">
+               <RotateCcw size={16} /> READ AGAIN
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* --- CONTROLS --- */}
-      <div className="mt-12 flex items-center gap-4">
-        <button onClick={handleBack} disabled={view === "closed-front"} className="p-5 bg-white rounded-2xl shadow-md disabled:opacity-20 transition-all"><ArrowLeft/></button>
+      <div className="mt-10 flex items-center gap-4">
+        <button 
+          onClick={handleBack} 
+          disabled={view === "closed-front"} 
+          className="p-4 bg-white rounded-2xl shadow-md disabled:opacity-20 transition-all hover:bg-slate-50"
+        >
+          <ArrowLeft/>
+        </button>
         
         {view === "closed-front" && (
-          <button onClick={() => setView("open")} className="px-10 py-5 bg-[#ec4899] text-white rounded-2xl shadow-xl font-black flex items-center gap-3">
-            <BookOpen size={20} /> OPEN BOOK
+          <button onClick={handleNext} className="px-10 py-4 bg-[#ec4899] text-white rounded-2xl shadow-xl font-black flex items-center gap-3 hover:scale-105 transition-transform">
+            <BookOpen size={20} /> OPEN STORY
           </button>
         )}
 
         {view === "open" && (
-          <button onClick={downloadPDF} className="px-10 py-5 bg-[#2563eb] text-white rounded-2xl shadow-xl font-black flex items-center gap-3">
+          <button onClick={downloadPDF} className="px-10 py-4 bg-[#2563eb] text-white rounded-2xl shadow-xl font-black flex items-center gap-3 hover:scale-105 transition-transform">
             <FileDown size={20} /> DOWNLOAD PDF
           </button>
         )}
 
         {view === "closed-back" && (
-          <button onClick={resetBook} className="px-10 py-5 bg-[#ec4899] text-white rounded-2xl shadow-xl font-black flex items-center gap-3">
+          <button onClick={resetBook} className="px-10 py-4 bg-[#ec4899] text-white rounded-2xl shadow-xl font-black flex items-center gap-3 hover:scale-105 transition-transform">
             <RotateCcw size={20} /> START OVER
           </button>
         )}
 
-        <button onClick={handleNext} disabled={view === "closed-back"} className="p-5 bg-white rounded-2xl shadow-md disabled:opacity-20 transition-all"><ArrowRight/></button>
+        <button 
+          onClick={handleNext} 
+          disabled={view === "closed-back"} 
+          className="p-4 bg-white rounded-2xl shadow-md disabled:opacity-20 transition-all hover:bg-slate-50"
+        >
+          <ArrowRight/>
+        </button>
       </div>
     </div>
   );
