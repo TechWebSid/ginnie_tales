@@ -1,16 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BookOpen, Download, Calendar, Wand2 } from "lucide-react";
+import { BookOpen, Download, Calendar, Wand2, Trash2 } from "lucide-react";
 
-export default function HistoryCard({ story, onOpen }) {
+export default function HistoryCard({ story, onOpen, onDelete }) {
   // Format the Firebase Timestamp
   const date = story.createdAt?.toDate 
-    ? story.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+    ? story.createdAt.toDate().toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      }) 
     : "Magic Moment";
 
   const handleDownload = (e) => {
-    e.stopPropagation(); // Prevent opening the book when clicking download
+    e.stopPropagation(); 
     const storyText = story.pages.join("\n\n");
     const blob = new Blob([storyText], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -22,11 +26,19 @@ export default function HistoryCard({ story, onOpen }) {
     document.body.removeChild(link);
   };
 
+  const handleDelete = (e) => {
+    e.stopPropagation(); // Don't open the book when clicking delete
+    if (window.confirm("Are you sure you want to delete this magic tale?")) {
+      onDelete(story.id);
+    }
+  };
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
       whileHover={{ y: -8 }}
       className="group bg-white rounded-[2.5rem] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.04)] border-4 border-white hover:border-blue-100 transition-all cursor-pointer"
       onClick={() => onOpen(story)}
@@ -52,9 +64,14 @@ export default function HistoryCard({ story, onOpen }) {
             <Calendar size={12} className="text-slate-400" />
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{date}</span>
           </div>
-          <div className="text-blue-500">
-            <Wand2 size={16} />
-          </div>
+          
+          {/* TRASH ICON */}
+          <button 
+            onClick={handleDelete}
+            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+          >
+            <Trash2 size={18} />
+          </button>
         </div>
 
         <h3 className="text-lg font-[1000] text-slate-800 line-clamp-1 leading-tight px-1">

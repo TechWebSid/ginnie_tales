@@ -7,7 +7,7 @@ import { Loader2, ArrowLeft, BookHeart, Sparkles, X } from "lucide-react";
 
 // Firebase
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 
 // Components
@@ -22,7 +22,6 @@ export default function HistoryPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect if not logged in
     if (!authLoading && !user) router.push("/login");
 
     if (user) {
@@ -52,6 +51,20 @@ export default function HistoryPage() {
     }
   }, [user, authLoading, router]);
 
+  // DELETE FUNCTION
+  const handleDeleteStory = async (storyId) => {
+    try {
+      // 1. Delete from Firestore
+      await deleteDoc(doc(db, "stories", storyId));
+      
+      // 2. Remove from local state immediately
+      setStories((prev) => prev.filter((s) => s.id !== storyId));
+    } catch (err) {
+      console.error("Failed to delete story:", err);
+      alert("Magic failed to delete this story. Try again!");
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-[#F0F4FF]">
@@ -70,7 +83,6 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-[#F0F4FF] pb-20">
       
-      {/* 🧞 HEADER */}
       <nav className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-white/50 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <button 
@@ -93,11 +105,10 @@ export default function HistoryPage() {
             Your Magic <br />
             <span className="text-blue-600">Adventure</span> History
           </h1>
-          <p className="mt-4 text-slate-500 font-medium">Relive your generated tales anytime, anywhere.</p>
+          <p className="mt-4 text-slate-500 font-medium">Relive or remove your generated tales.</p>
         </header>
 
         {stories.length === 0 ? (
-          /* EMPTY STATE */
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="bg-white rounded-[3rem] p-16 text-center shadow-sm border-4 border-white"
@@ -106,7 +117,6 @@ export default function HistoryPage() {
                <Sparkles className="text-slate-300" size={40} />
             </div>
             <h2 className="text-2xl font-black text-slate-800 mb-2">No Stories Yet!</h2>
-            <p className="text-slate-400 mb-8 max-w-xs mx-auto">Upload a photo and let Ginnie write your first magic adventure.</p>
             <button 
               onClick={() => router.push("/story")}
               className="px-10 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-black rounded-2xl shadow-lg hover:scale-105 transition-all"
@@ -115,14 +125,14 @@ export default function HistoryPage() {
             </button>
           </motion.div>
         ) : (
-          /* GRID VIEW */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {stories.map((story) => (
                 <HistoryCard 
                   key={story.id} 
                   story={story} 
                   onOpen={(s) => setSelectedStory(s)} 
+                  onDelete={handleDeleteStory}
                 />
               ))}
             </AnimatePresence>
@@ -130,7 +140,6 @@ export default function HistoryPage() {
         )}
       </main>
 
-      {/* 📖 FULL-SCREEN BOOK MODAL */}
       <AnimatePresence>
         {selectedStory && (
           <motion.div
@@ -159,7 +168,6 @@ export default function HistoryPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
