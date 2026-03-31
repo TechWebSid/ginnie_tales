@@ -6,18 +6,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Wand2, Sparkles, Star, Heart, Zap, Cloud, Rocket, 
   Crown, Gift, Smile, Camera, BookOpen, Palette, 
-  ArrowLeft, RefreshCw, Loader2 
+  ArrowLeft, RefreshCw, Loader2, History 
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+// Firebase & Auth Imports
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth"; 
+
 import Book from "@/components/Book";
 
 export default function StoryGenerator() {
-  // --- LOGIC (UPDATED FOR 4-PAGE STRUCTURE) ---
+  const { user } = useAuth();
+  const router = useRouter();
+
+  // --- STATE MANAGEMENT ---
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState(null);
   const [error, setError] = useState(null);
   const [loadingStage, setLoadingStage] = useState("");
 
+  // --- FILE HANDLING ---
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -38,9 +49,10 @@ export default function StoryGenerator() {
     }
   };
 
+  // --- GENERATION & FIREBASE STORAGE ---
   const clientSubmit = async (e) => {
     e.preventDefault();
-    if (!preview) return;
+    if (!preview || !user) return;
 
     setLoading(true);
     setError(null);
@@ -51,6 +63,7 @@ export default function StoryGenerator() {
     const storyPrompt = formData.get("storyPrompt");
 
     try {
+      // 1. Call AI API
       const res = await fetch("/api/genie", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,8 +74,22 @@ export default function StoryGenerator() {
       const result = await res.json();
 
       if (result.success) {
-        setLoadingStage("🎨 Creating illustrations...");
-        // Updated to use result.pages and result.images
+        setLoadingStage("🎨 Saving to your Library...");
+
+        // 2. Prepare Story Data for Firestore
+        const storyData = {
+          userId: user.uid,
+          prompt: storyPrompt,
+          pages: result.pages,
+          images: result.images,
+          createdAt: serverTimestamp(),
+          coverImage: result.images[0], // First image as thumbnail
+        };
+
+        // 3. Save to Firebase "stories" collection
+        await addDoc(collection(db, "stories"), storyData);
+
+        // 4. Update UI
         setOutput({ pages: result.pages, images: result.images });
         setError(null);
       } else {
@@ -77,7 +104,7 @@ export default function StoryGenerator() {
     }
   };
 
-  // --- UI/UX ELEMENTS (GINNIE THEME) ---
+  // --- GSAP CURTAIN ANIMATION ---
   const leftCurtainRef = useRef(null);
   const rightCurtainRef = useRef(null);
   const flashRef = useRef(null);
@@ -95,14 +122,14 @@ export default function StoryGenerator() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#F0F4FF] font-sans text-slate-800">
       
-      {/* 🌪️ THEATER CURTAINS (Intro only) */}
+      {/* 🌪️ THEATER CURTAINS */}
       <div className="absolute inset-0 z-[100] flex pointer-events-none">
         <div ref={leftCurtainRef} className="w-1/2 h-full bg-gradient-to-r from-[#FFD93D] to-[#FFED4E] border-r-4 border-yellow-500/20 shadow-2xl" />
         <div ref={rightCurtainRef} className="w-1/2 h-full bg-gradient-to-l from-[#FFD93D] to-[#FFED4E] border-l-4 border-yellow-500/20 shadow-2xl" />
       </div>
       <div ref={flashRef} className="absolute inset-0 z-[110] bg-white pointer-events-none" />
 
-      {/* 🌌 ANIMATED BACKGROUND */}
+      {/* 🌌 ANIMATED BACKGROUND DECOR */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         {[...Array(15)].map((_, i) => (
           <motion.div
@@ -111,14 +138,18 @@ export default function StoryGenerator() {
             transition={{ duration: 5 + i, repeat: Infinity }}
             className="absolute opacity-20"
           >
+            {/* Shapes or sparkles could go here */}
           </motion.div>
         ))}
       </div>
 
       {/* 🧞 NAVIGATION / HEADER */}
       <header className="relative z-50 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border-2 border-white">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl">
+        <div 
+          onClick={() => router.push("/")}
+          className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border-2 border-white cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl shadow-inner">
             🧞
           </div>
           <h1 className="text-2xl font-black italic bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 tracking-tight">
@@ -126,16 +157,27 @@ export default function StoryGenerator() {
           </h1>
         </div>
         
-        {output && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setOutput(null)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border-b-4 border-slate-200 rounded-2xl font-black text-xs text-slate-600 shadow-lg"
-            >
-              <RefreshCw size={16} /> CREATE NEW STORY
-            </motion.button>
-        )}
+        <div className="flex gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push("/history")}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border-b-4 border-slate-200 rounded-2xl font-black text-xs text-slate-600 shadow-lg"
+          >
+            <History size={16} /> MY STORIES
+          </motion.button>
+
+          {output && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => { setOutput(null); setPreview(null); }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-2xl font-black text-xs shadow-lg"
+              >
+                <RefreshCw size={16} /> CREATE NEW
+              </motion.button>
+          )}
+        </div>
       </header>
 
       {/* 🎪 MAIN CONTENT */}
@@ -182,7 +224,7 @@ export default function StoryGenerator() {
                     </motion.div>
                   )}
 
-                  {/* UPLOAD BOX */}
+                  {/* 1. UPLOAD BOX */}
                   <div className="space-y-3">
                     <label className="flex items-center gap-2 text-sm font-black text-slate-400 uppercase tracking-widest ml-1">
                         <Camera size={18} className="text-blue-500" /> 1. Pick a Selfie
@@ -200,7 +242,7 @@ export default function StoryGenerator() {
                       `}>
                         {preview ? (
                           <div className="relative">
-                            <img src={preview} className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md" />
+                            <img src={preview} className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md" alt="Preview" />
                             <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1"><Smile size={16}/></div>
                           </div>
                         ) : (
@@ -215,7 +257,7 @@ export default function StoryGenerator() {
                     </div>
                   </div>
 
-                  {/* PROMPT BOX */}
+                  {/* 2. PROMPT BOX */}
                   <div className="space-y-3">
                     <label className="flex items-center gap-2 text-sm font-black text-slate-400 uppercase tracking-widest ml-1">
                         <BookOpen size={18} className="text-purple-500" /> 2. Describe Your Adventure
@@ -231,6 +273,7 @@ export default function StoryGenerator() {
                   {/* SUBMIT BUTTON */}
                   <button
                     disabled={loading || !preview}
+                    type="submit"
                     className="group relative w-full py-5 bg-gradient-to-r from-[#FF477E] to-[#FF6B9D] rounded-[1.5rem] text-white font-black tracking-widest text-lg transition-all hover:scale-[1.02] active:scale-95 shadow-[0_8px_0_#D4145A] disabled:opacity-50 disabled:grayscale overflow-hidden"
                   >
                     <span className="relative z-10 flex items-center justify-center gap-3">
@@ -255,10 +298,10 @@ export default function StoryGenerator() {
                 </form>
               </div>
 
-              {/* TIPS */}
+              {/* FOOTER INFO */}
               <div className="mt-8 flex justify-center gap-4">
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                   <Zap size={14} className="text-yellow-500" /> Takes 2 mins
+                   <Zap size={14} className="text-yellow-500" /> Fast Magic
                 </div>
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
                    <Heart size={14} className="text-pink-500" /> AI-Generated Art
@@ -266,6 +309,7 @@ export default function StoryGenerator() {
               </div>
             </motion.div>
           ) : (
+            /* STORY OUTPUT VIEW */
             <motion.div 
               key="output"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -283,18 +327,19 @@ export default function StoryGenerator() {
                   className="mb-6 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black rounded-2xl shadow-[0_6px_0_#7c3aed] hover:shadow-[0_8px_0_#7c3aed] active:translate-y-1 active:shadow-none transition-all"
                 >
                   <ArrowLeft size={18} />
-                  CREATE MORE STORY
+                  CREATE MORE STORIES
                 </motion.button>
+                
                 <motion.div 
                     initial={{ y: 20 }} animate={{ y: 0 }}
                     className="mb-8 text-center"
                 >
-                    <span className="px-6 py-2 bg-yellow-400 text-white font-black rounded-full text-xs tracking-widest shadow-lg">
-                        ✨ YOUR STORY IS READY ✨
+                    <span className="px-6 py-2 bg-yellow-400 text-white font-black rounded-full text-xs tracking-widest shadow-lg uppercase">
+                        ✨ Saved to your history ✨
                     </span>
                 </motion.div>
 
-                {/* THE BOOK COMPONENT */}
+                {/* THE 3D BOOK COMPONENT */}
                 <div className="w-full flex justify-center">
                     <Book
                       pages={output.pages}
