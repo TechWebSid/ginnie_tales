@@ -11,7 +11,7 @@ import {
 import Book from "@/components/Book";
 
 export default function StoryGenerator() {
-  // --- LOGIC (UNTOUCHED) ---
+  // --- LOGIC (UPDATED FOR 4-PAGE STRUCTURE) ---
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState(null);
@@ -61,8 +61,9 @@ export default function StoryGenerator() {
       const result = await res.json();
 
       if (result.success) {
-        setLoadingStage("🎨 Creating illustration...");
-        setOutput({ story: result.story, illustration: result.illustration });
+        setLoadingStage("🎨 Creating illustrations...");
+        // Updated to use result.pages and result.images
+        setOutput({ pages: result.pages, images: result.images });
         setError(null);
       } else {
         setError(result.error || "Generation failed");
@@ -109,9 +110,7 @@ export default function StoryGenerator() {
             animate={{ y: [0, -40, 0], x: [0, 20, 0], rotate: [0, 360] }}
             transition={{ duration: 5 + i, repeat: Infinity }}
             className="absolute opacity-20"
-    
           >
-            
           </motion.div>
         ))}
       </div>
@@ -259,7 +258,7 @@ export default function StoryGenerator() {
               {/* TIPS */}
               <div className="mt-8 flex justify-center gap-4">
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                   <Zap size={14} className="text-yellow-500" /> Takes 30 seconds
+                   <Zap size={14} className="text-yellow-500" /> Takes 2 mins
                 </div>
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
                    <Heart size={14} className="text-pink-500" /> AI-Generated Art
@@ -275,17 +274,17 @@ export default function StoryGenerator() {
             >
               <div className="flex flex-col items-center">
                 <motion.button
-  whileHover={{ scale: 1.05 }}
-  whileTap={{ scale: 0.95 }}
-  onClick={() => {
-    setOutput(null);
-    setPreview(null);
-  }}
-  className="mb-6 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black rounded-2xl shadow-[0_6px_0_#7c3aed] hover:shadow-[0_8px_0_#7c3aed] active:translate-y-1 active:shadow-none transition-all"
->
-  <ArrowLeft size={18} />
-  CREATE MORE STORY
-</motion.button>
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setOutput(null);
+                    setPreview(null);
+                  }}
+                  className="mb-6 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black rounded-2xl shadow-[0_6px_0_#7c3aed] hover:shadow-[0_8px_0_#7c3aed] active:translate-y-1 active:shadow-none transition-all"
+                >
+                  <ArrowLeft size={18} />
+                  CREATE MORE STORY
+                </motion.button>
                 <motion.div 
                     initial={{ y: 20 }} animate={{ y: 0 }}
                     className="mb-8 text-center"
@@ -298,8 +297,8 @@ export default function StoryGenerator() {
                 {/* THE BOOK COMPONENT */}
                 <div className="w-full flex justify-center">
                     <Book
-                    story={output.story}
-                    image={output.illustration}
+                      pages={output.pages}
+                      images={output.images}
                     />
                 </div>
               </div>
