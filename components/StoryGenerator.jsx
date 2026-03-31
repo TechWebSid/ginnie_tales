@@ -274,6 +274,18 @@ export default function StoryGenerator() {
               className="w-full"
             >
               <div className="flex flex-col items-center">
+                <motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+  onClick={() => {
+    setOutput(null);
+    setPreview(null);
+  }}
+  className="mb-6 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black rounded-2xl shadow-[0_6px_0_#7c3aed] hover:shadow-[0_8px_0_#7c3aed] active:translate-y-1 active:shadow-none transition-all"
+>
+  <ArrowLeft size={18} />
+  CREATE MORE STORY
+</motion.button>
                 <motion.div 
                     initial={{ y: 20 }} animate={{ y: 0 }}
                     className="mb-8 text-center"

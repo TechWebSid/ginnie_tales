@@ -40,9 +40,12 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 w-full z-[100] px-6 py-6 pointer-events-none">
-      <div className="max-w-7xl mx-auto flex justify-between items-center pointer-events-auto">
+      {/* 🌫️ Top Fade for readability */}
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/60 via-white/20 to-transparent -z-10" />
+      
+      <div className="max-w-[90rem] mx-auto flex justify-between items-center pointer-events-auto">
         
-        {/* 🎨 LOGO */}
+        {/* 🎨 LOGO - Shifted slightly left to make room for center */}
         <Link href="/">
           <motion.div 
             whileHover={{ scale: 1.05, rotate: -2 }}
@@ -57,9 +60,9 @@ export default function Navbar() {
           </motion.div>
         </Link>
 
-        {/* 💻 DESKTOP MENU */}
+        {/* 💻 DESKTOP MENU - Pushed right to avoid the center Genie area */}
         {!loading && (
-          <div className="hidden md:flex items-center gap-4 bg-white/80 backdrop-blur-md border-[5px] border-white shadow-[0_12px_30px_-10px_rgba(0,0,0,0.1)] px-4 py-2 rounded-[2rem]">
+          <div className="hidden md:flex items-center gap-4 bg-white/90 backdrop-blur-xl border-[5px] border-white shadow-[0_12px_30px_-10px_rgba(0,0,0,0.1)] px-4 py-2 rounded-[2rem] ml-auto">
             {navLinks.map((link) => (
               <Link key={link.name} href={link.href} className="px-5 py-2 font-black text-sm uppercase tracking-widest text-slate-500 hover:text-blue-500 transition-colors">
                 {link.name}
@@ -146,4 +149,4 @@ export default function Navbar() {
       </AnimatePresence>
     </nav>
   );
-}   
+}

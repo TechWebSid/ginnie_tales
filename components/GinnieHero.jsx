@@ -241,7 +241,7 @@ const GinnieHero = () => {
       <div className="relative z-20 w-full max-w-7xl mx-auto h-full flex flex-col items-center justify-center px-4 py-6">
         
         {/* The Genie - Compact positioning */}
-        <div ref={genieRef} className="relative w-full max-w-[200px] sm:max-w-[280px] md:max-w-[360px] mb-3 sm:mb-4">
+        <div ref={genieRef} className="relative w-full max-w-[200px] sm:max-w-[280px] md:max-w-[360px] mb-3 sm:mb-4 " >
           <motion.img
             animate={{ y: [0, -12, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
