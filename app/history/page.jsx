@@ -163,6 +163,8 @@ export default function HistoryPage() {
               <Book 
                 pages={selectedStory.pages} 
                 images={selectedStory.images} 
+                title={selectedStory.prompt} // Prompt ko title ki tarah use kar sakte hain
+                isPaid={selectedStory.paid}   // <--- YEH LINE ADD KAREIN
               />
             </motion.div>
           </motion.div>
