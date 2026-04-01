@@ -4,46 +4,83 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-// Import our firebase tools
-import { auth } from "@/lib/firebase";
+// Import firebase tools
+import { auth, db } from "@/lib/firebase"; 
 import { 
   signInWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider 
 } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"; // Added setDoc, serverTimestamp
 
 export default function SignIn() {
   const router = useRouter();
   
-  // 1. Form States
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 2. Email/Password Login Logic
+ // Helper to handle Role-Based Redirection and saving Google user data
+  const redirectUserByRole = async (user) => {
+    const userRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userRef);
+    
+    let role = "user";
+
+    // Logic to ensure the name is ALWAYS in the database for the dashboard to render
+    if (!userDoc.exists()) {
+      // Create document for brand new users (especially Google)
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email.split('@')[0] || "Explorer", 
+        role: "user",
+        createdAt: serverTimestamp(),
+      });
+    } else {
+      const userData = userDoc.data();
+      role = userData.role || "user";
+
+      // If user exists but displayName is empty in Firestore, fix it now
+      if (!userData.displayName) {
+        await setDoc(userRef, { 
+          displayName: user.displayName || user.email.split('@')[0] || "Explorer" 
+        }, { merge: true });
+      }
+    }
+
+    // Routing Logic
+    if (role === "admin") {
+      router.push("/admin/dashboard");
+    } else if (role === "operational") {
+      router.push("/operational/dashboard");
+    } else {
+      router.push("/dashboard");
+    }
+  };
+
+  // Email/Password Login Logic
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard"); // Redirect to dashboard on success
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      await redirectUserByRole(user);
     } catch (err) {
       setError("Magic code or email is incorrect! 🧙‍♂️");
-      console.error(err);
-    } finally {
       setLoading(false);
     }
   };
 
-  // 3. Google Login Logic
+  // Google Login Logic
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      router.push("/dashboard");
+      const { user } = await signInWithPopup(auth, provider);
+      await redirectUserByRole(user);
     } catch (err) {
       console.error(err);
     }

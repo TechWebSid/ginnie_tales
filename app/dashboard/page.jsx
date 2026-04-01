@@ -53,7 +53,7 @@ export default function Dashboard() {
             className="text-5xl md:text-7xl font-[1000] text-slate-800 tracking-tighter uppercase italic"
           >
             Welcome back, <br/>
-            <span className="text-blue-500">{userData?.explorerName || "Explorer"}!</span> 👋
+            <span className="text-blue-500">{userData?.displayName || "Explorer"}!</span> 👋
           </motion.h1>
           <p className="text-slate-400 font-bold text-lg uppercase tracking-widest mt-4">
             What's the mission for today?

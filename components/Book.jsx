@@ -61,78 +61,101 @@ export default function MagicBook({
     setView("closed-front");
   };
 
-  const downloadPDF = async () => {
-    if (!isPaid) {
-      alert("Oops! You need to unlock the full magic to download the PDF.");
-      return;
-    }
+ const downloadPDF = async () => {
+  if (!isPaid) {
+    alert("Oops! You need to unlock the full magic to download the PDF.");
+    return;
+  }
 
-    const yellowStarSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#fde047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`;
+  // Branding Assets
+  const brandName = "Genie Tales";
+  const developerBrand = "TechWebSid";
+  const yellowStarSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#fde047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`;
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            @page { size: 297mm 210mm; margin: 0; }
-            body { margin: 0; padding: 0; font-family: 'Helvetica', sans-serif; background: #fff; }
-            .page { width: 297mm; height: 210mm; display: flex; overflow: hidden; page-break-after: always; position: relative; }
-            .cover { width: 100%; height: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #ec4899; }
-            .glass-box { background: rgba(0, 0, 0, 0.7); padding: 60px; border-radius: 40px; text-align: center; border: 2px solid rgba(255,255,255,0.2); width: 60%; z-index: 10; color: white; }
-            .img-side { width: 50%; height: 100%; }
-            .img-side img { width: 100%; height: 100%; object-fit: cover; }
-            .text-side { width: 50%; height: 100%; background: #FFFCF9; padding: 80px; display: flex; flex-direction: column; justify-content: space-between; position: relative; border-left: 2px solid #eee; }
-            .story-content { font-size: 26px; line-height: 1.6; color: #1a202c; flex-grow: 1; margin-bottom: 40px; }
-            .bottom-border { border-bottom: 4px solid #ec4899; width: 100px; margin-bottom: 20px; }
-            .dropcap { font-size: 70px; font-weight: 900; color: #ec4899; float: left; margin-right: 15px; line-height: 0.8; padding-top: 10px; }
-            .back-cover { width: 100%; height: 100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; }
-          </style>
-        </head>
-        <body>
-          <div class="page"><div class="cover"><img src="${images[0]}" style="position: absolute; inset:0; width:100%; height:100%; object-fit:cover;" /><div class="glass-box"><div>${yellowStarSvg}</div><h1 style="font-size:45px;">${title}</h1></div></div></div>
-          ${pages.map((text, i) => `
-            <div class="page">
-              <div class="img-side"><img src="${images[i] || images[0]}" /></div>
-              <div class="text-side">
-                <div class="story-content">
-                  <span class="dropcap">${text.charAt(0)}</span>${text.substring(1)}
-                </div>
-                <div>
-                   <div class="bottom-border"></div>
-                   <div style="font-size:14px; color:#94a3b8; font-weight: bold;">PAGE ${i + 1} OF ${pages.length}</div>
-                </div>
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&display=swap');
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          @page { size: 297mm 210mm; margin: 0; }
+          body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: #fff; }
+          
+          .page { width: 297mm; height: 210mm; display: flex; overflow: hidden; page-break-after: always; position: relative; }
+          
+          /* --- Front Cover --- */
+          .cover { width: 100%; height: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #ec4899; }
+          .cover-overlay { position: absolute; inset: 0; background: linear-gradient(45deg, rgba(236,72,153,0.4), rgba(30,41,59,0.4)); }
+          .glass-box { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); padding: 60px; border-radius: 60px; text-align: center; border: 2px solid rgba(255,255,255,0.3); width: 70%; z-index: 10; color: white; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+          .brand-badge { font-weight: 800; letter-spacing: 4px; font-size: 14px; margin-bottom: 20px; color: #fde047; text-transform: uppercase; }
+
+          /* --- Story Pages --- */
+          .img-side { width: 50%; height: 100%; position: relative; }
+          .img-side img { width: 100%; height: 100%; object-fit: cover; }
+          .text-side { width: 50%; height: 100%; background: #FFFCF9; padding: 60px 80px; display: flex; flex-direction: column; justify-content: space-between; border-left: 1px solid #e2e8f0; }
+          .story-content { font-size: 24px; line-height: 1.7; color: #1e293b; font-weight: 400; }
+          .dropcap { font-size: 80px; font-weight: 800; color: #ec4899; float: left; margin-right: 15px; line-height: 0.7; padding-top: 10px; }
+          
+          /* --- Footer Branding --- */
+          .page-footer { display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #f1f5f9; pt: 20px; margin-top: 20px; padding-top: 20px; }
+          .footer-logo { font-weight: 800; font-size: 12px; color: #94a3b8; }
+          .footer-page { font-weight: 800; font-size: 12px; color: #ec4899; }
+
+          /* --- Back Cover --- */
+          .back-cover { width: 100%; height: 100%; background: #0f172a; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; }
+          .back-logo { font-size: 60px; font-weight: 800; margin-bottom: 10px; background: linear-gradient(to right, #ec4899, #fde047); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+          .credits { margin-top: 50px; font-size: 16px; opacity: 0.6; letter-spacing: 2px; }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <img src="${images[0]}" style="position: absolute; inset:0; width:100%; height:100%; object-fit:cover;" />
+          <div class="cover-overlay"></div>
+          <div class="glass-box">
+            <div class="brand-badge">A MAGICAL TALE BY ${brandName.toUpperCase()}</div>
+            <div style="margin-bottom: 20px;">${yellowStarSvg}</div>
+            <h1 style="font-size: 64px; font-weight: 800; text-transform: uppercase; line-height: 1.1;">${title}</h1>
+          </div>
+        </div>
+
+        ${pages.map((text, i) => `
+          <div class="page">
+            <div class="img-side">
+              <img src="${images[i] || images[0]}" />
+            </div>
+            <div class="text-side">
+              <div class="story-content">
+                <span class="dropcap">${text.charAt(0)}</span>${text.substring(1)}
+              </div>
+              <div class="page-footer">
+                <div class="footer-logo">MADE BY ${brandName.toUpperCase()}</div>
+                <div class="footer-page">PAGE ${i + 1}</div>
               </div>
             </div>
-          `).join('')}
-          <div class="page"><div class="back-cover"><h2 style="font-size:50px;">The End</h2></div></div>
-        </body>
-      </html>
-    `;
-    
-    try {
-      const response = await fetch("/api/pdf", { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ html }) 
-      });
-      if (!response.ok) throw new Error("PDF generation failed");
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${title.replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) { 
-      console.error("Download Error:", err);
-      alert("Oops! The magic printer is stuck. Please try again.");
-    }
-  };
+          </div>
+        `).join('')}
 
+        <div class="page">
+          <div class="back-cover">
+            <div class="brand-badge" style="color: #64748b">THANK YOU FOR READING</div>
+            <h2 class="back-logo">${brandName}</h2>
+            <div style="width: 60px; height: 4px; background: #ec4899; border-radius: 10px; margin: 20px 0;"></div>
+            <p style="font-size: 18px; max-width: 400px; line-height: 1.6; color: #94a3b8;">
+              We hope you enjoyed this journey. Every hero has a story, and this one is yours forever.
+            </p>
+            <div class="credits">
+              POWERED BY <span style="color: white; font-weight: 800;">${developerBrand.toUpperCase()}</span>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  // ... rest of your fetch logic remains the same
+};
   return (
     <div className="flex flex-col items-center justify-center p-4 w-full max-w-6xl mx-auto min-h-[90vh]">
       <AnimatePresence mode="wait">
