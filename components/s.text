@@ -1,0 +1,83 @@
+  const clientSubmit = async (e) => {
+    e.preventDefault();
+    if (!preview || !user) return;
+
+    setLoading(true);
+    setError(null);
+    setOutput(null);
+    setProgress(0);
+    
+    const formData = new FormData(e.target);
+    const storyPrompt = formData.get("storyPrompt");
+
+    try {
+      // PHASE 1: GENERATE 25-PAGE TEXT OUTLINE
+      setLoadingStage("🧠 Imagining your 25-page adventure...");
+      const textRes = await fetch("/api/genie", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          imageBase64: preview, 
+          storyPrompt, 
+          mode: "generateText" 
+        }),
+      });
+
+      const textData = await textRes.json();
+      if (!textData.success) throw new Error(textData.error || "Text generation failed");
+
+      const allPages = textData.pages; // Array of 25 strings
+      const allImages = new Array(25).fill("https://placehold.co/600x800/png?text=Painting...");
+
+      // Set initial output so the UI can show the "Loading Book"
+      setOutput({ pages: allPages, images: allImages });
+
+      // PHASE 2: GENERATE IMAGES ONE-BY-ONE (The Sequencer)
+      const finalImages = [];
+
+      for (let i = 0; i < allPages.length; i++) {
+        setLoadingStage(`🎨 Painting Page ${i + 1} of 25...`);
+        setProgress(i + 1);
+
+        const imgRes = await fetch("/api/genie", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            imageBase64: preview, 
+            pageText: allPages[i], 
+            mode: "generateImage" 
+          }),
+        });
+
+        const imgData = await imgRes.json();
+        const url = imgData.imageUrl || "https://placehold.co/600x800/png?text=Error";
+        
+        finalImages.push(url);
+        
+        // Optional: Update UI live so images appear as they finish
+        setOutput(prev => ({
+          ...prev,
+          images: [...finalImages, ...new Array(25 - finalImages.length).fill("https://placehold.co/600x800/png?text=Waiting...")]
+        }));
+      }
+
+      // PHASE 3: SAVE TO FIREBASE
+      setLoadingStage("✨ Archiving your masterpiece...");
+      await addDoc(collection(db, "stories"), {
+        userId: user.uid,
+        prompt: storyPrompt,
+        pages: allPages,
+        images: finalImages,
+        createdAt: serverTimestamp(),
+        coverImage: finalImages[0],
+      });
+
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("The magic was interrupted. Please try again!");
+    } finally {
+      setLoading(false);
+      setLoadingStage("");
+    }
+  };

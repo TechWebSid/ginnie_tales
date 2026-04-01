@@ -1,6 +1,6 @@
 import Replicate from "replicate";
 
-export const maxDuration = 300; // Increased for background tasks if supported
+export const maxDuration = 300; 
 export const dynamic = "force-dynamic";
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -17,12 +17,7 @@ export async function POST(req) {
     const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY });
     const imageDataUrl = imageBase64?.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`;
 
-    // =========================================================
-    // MODE: GENERATE TEXT (The 25-Page Outline)
-    // =========================================================
     if (mode === "generateText") {
-      console.log("📝 Generating 25-page story outline...");
-      
       const output = await replicate.run("google/gemini-2.5-flash", {
         input: {
           images: [imageDataUrl],
@@ -54,12 +49,7 @@ export async function POST(req) {
       throw new Error("Failed to parse story JSON");
     }
 
-    // =========================================================
-    // MODE: GENERATE IMAGE (Single Page Mode)
-    // =========================================================
     if (mode === "generateImage") {
-      console.log("🎨 Painting page image...");
-
       const output = await replicate.run(
         "bytedance/flux-pulid:8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b",
         {
