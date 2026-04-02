@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Camera, ArrowLeft, Loader2, History, Sparkles, Wand2, XCircle, Rocket, Star, Palette
+  Camera, ArrowLeft, Loader2, History, Sparkles, Wand2, XCircle, Rocket, Star, Palette, FileDown, BookOpen
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
 
 import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
@@ -28,6 +29,16 @@ export default function StoryGenerator() {
   const [storyId, setStoryId] = useState(null);
   const [isPaid, setIsPaid] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
+  
+  // Payment States
+const [showCart, setShowCart] = useState(false);
+const [showShippingForm, setShowShippingForm] = useState(false); // New
+const [shippingDetails, setShippingDetails] = useState({
+  phone: "",
+  address: "",
+  pincode: "",
+  city: ""
+});
 
   // Refs
   const leftCurtainRef = useRef(null);
@@ -49,12 +60,114 @@ export default function StoryGenerator() {
     setLoading(false);
   };
 
+  const handlePlanSelection = (plan) => {
+    if (plan === "hardcopy") {
+      setShowShippingForm(true);
+    } else {
+      // For digital ebook, go straight to payment
+      startPayment("ebook");
+    }
+  };
+  // --- RAZORPAY PAYMENT FLOW ---
+// --- UPDATED RAZORPAY PAYMENT FLOW ---
+  const startPayment = async (plan) => {
+    // If user chose hardcopy but hasn't filled address, show form first
+    if (plan === "hardcopy" && !showShippingForm) {
+      setShowShippingForm(true);
+      return;
+    }
+
+    setLoading(true);
+    setLoadingStage("💎 Preparing Checkout...");
+    const price = plan === "hardcopy" ? 1499 : 499;
+
+    try {
+      // 1. Create Order on Server
+      const res = await fetch("/api/razorpay/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          amount: price, 
+          storyId: storyId, 
+          planType: plan 
+        }),
+      });
+      
+      const { order } = await res.json();
+
+      // 2. Open Razorpay Modal
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
+        amount: order.amount,
+        currency: "INR",
+        name: "Genie Tales",
+        description: plan === "hardcopy" ? "Hardcover + Digital E-Book" : "Digital E-Book Only",
+        order_id: order.id,
+        handler: async function (response) {
+          // Pass the shipping details to the verification function
+          await verifyAndStartMagic(response, plan);
+        },
+        prefill: {
+          email: user?.email || "",
+          contact: shippingDetails.phone || "" // Pre-fill phone if available
+        },
+        theme: { color: "#EF476F" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      console.error("Payment Init Error:", err);
+      alert("Payment failed to initialize. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyAndStartMagic = async (rzpResponse, plan) => {
+    console.log("DEBUG: storyId state is currently:", storyId);
+    console.log("DEBUG: rzpResponse is:", rzpResponse);
+    
+    setLoading(true);
+    setLoadingStage("🛡️ Verifying Payment...");
+
+    try {
+      const res = await fetch("/api/razorpay/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...rzpResponse,
+          storyId,
+          planType: plan,
+          userId: user.uid,
+          // Include shipping details only if the plan is hardcopy
+          shipping: plan === "hardcopy" ? shippingDetails : null 
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setIsPaid(true);
+        setShowCart(false);
+        setShowShippingForm(false); // Close the form on success
+        await generateRemainingPages(); // Start the AI loop
+      } else {
+        alert("Verification failed. Please contact support if amount was deducted.");
+      }
+    } catch (err) {
+      console.error("Verification Error:", err);
+      alert("Something went wrong during verification.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Full Story Generation (Post-Payment)
-  const handlePaymentAndResume = async () => {
+  const generateRemainingPages = async () => {
     if (!output || !storyId) return;
     
     setLoading(true);
-    setIsPaid(true); 
     setIsCancelled(false);
     const updatedImages = [...output.images];
 
@@ -97,7 +210,7 @@ export default function StoryGenerator() {
     }
   };
 
-  // Initial Genie Trigger
+  // Initial Genie Trigger (First 2 Pages)
   const clientSubmit = async (e) => {
     e.preventDefault();
     if (!preview || !user) return;
@@ -123,7 +236,6 @@ export default function StoryGenerator() {
       const finalImages = new Array(allPages.length).fill("https://placehold.co/600x800?text=Locked");
       setOutput({ pages: allPages, images: finalImages, title: storyPrompt });
 
-      // Generate first 2 pages for free preview
       for (let i = 0; i < 2; i++) {
         setLoadingStage(`✨ Creating Page ${i + 1}...`);
         setProgress(i + 1);
@@ -163,8 +275,9 @@ export default function StoryGenerator() {
 
   return (
     <div className="relative min-h-screen w-full bg-[#FEF9EF] overflow-x-hidden font-sans pb-10">
-      
-      {/* 🎪 Cinematic Curtains (Responsive Text) */}
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+
+      {/* 🎪 Cinematic Curtains */}
       <div className="fixed inset-0 z-[100] flex pointer-events-none">
         <div ref={leftCurtainRef} className="w-1/2 h-full bg-[#FF4D6D] border-r-4 md:border-r-8 border-[#C9184A] flex items-center justify-end pr-4 md:pr-10">
             <span className="text-white/20 font-black text-6xl md:text-9xl uppercase rotate-90 select-none tracking-widest">MAGIC</span>
@@ -174,68 +287,37 @@ export default function StoryGenerator() {
         </div>
       </div>
 
-      {/* 🍭 Header (Flex-Col on mobile, Row on desktop) */}
       <header className="relative z-50 flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-6 max-w-7xl mx-auto">
-        <motion.div 
-          whileHover={{ scale: 1.05 }} 
-          onClick={() => router.push("/")} 
-          className="flex items-center gap-3 cursor-pointer"
-        >
-        
-         
-        </motion.div>
-
-      
+        <motion.div whileHover={{ scale: 1.05 }} onClick={() => router.push("/")} className="flex items-center gap-3 cursor-pointer" />
       </header>
 
       <main className="relative z-10 max-w-6xl mx-auto px-4 md:px-6">
         <AnimatePresence mode="wait">
           
           {!output || (loading && progress <= 2) ? (
-            <motion.div 
-              key="generator-form" 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95 }} 
-              className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center pt-4 md:pt-10"
-            >
-              {/* Left Side */}
+            <motion.div key="generator-form" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center pt-4 md:pt-10">
               <div className="space-y-6 text-center lg:text-left">
-                <motion.div 
-                  animate={{ rotate: [0, 5, -5, 0], y: [0, -10, 0] }} 
-                  transition={{ duration: 4, repeat: Infinity }}
-                  className="w-24 h-24 md:w-32 md:h-32 bg-[#FFD166] rounded-[2rem] flex items-center justify-center mx-auto lg:mx-0 shadow-[6px_6px_0px_#EE964B] border-4 border-white"
-                >
+                <motion.div animate={{ rotate: [0, 5, -5, 0], y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="w-24 h-24 md:w-32 md:h-32 bg-[#FFD166] rounded-[2rem] flex items-center justify-center mx-auto lg:mx-0 shadow-[6px_6px_0px_#EE964B] border-4 border-white">
                     <Wand2 className="text-white w-12 h-12 md:w-16 md:h-16 drop-shadow-lg" />
                 </motion.div>
                 <div className="space-y-4">
-                    <h2 className="text-5xl md:text-7xl lg:text-8xl font-[1000] text-[#073B4C] leading-[0.9] tracking-tighter">
-                      BE THE <br /> <span className="text-[#EF476F]">HERO!</span>
-                    </h2>
-                    <p className="text-[#118AB2] font-black text-lg md:text-xl bg-white/60 backdrop-blur-sm p-4 rounded-2xl inline-block border-2 border-[#118AB2]/10">
-                      Upload your photo to start! 🚀
-                    </p>
+                    <h2 className="text-5xl md:text-7xl lg:text-8xl font-[1000] text-[#073B4C] leading-[0.9] tracking-tighter">BE THE <br /> <span className="text-[#EF476F]">HERO!</span></h2>
+                    <p className="text-[#118AB2] font-black text-lg md:text-xl bg-white/60 backdrop-blur-sm p-4 rounded-2xl inline-block border-2 border-[#118AB2]/10">Upload your photo to start! 🚀</p>
                 </div>
               </div>
 
-              {/* Form Container */}
               <div className="relative w-full max-w-lg mx-auto lg:max-w-none">
                 <div className="absolute -inset-2 md:-inset-6 bg-[#06D6A0] rounded-[2.5rem] md:rounded-[4rem] rotate-2 opacity-10 blur-xl" />
                 <div className="relative bg-white rounded-[2rem] md:rounded-[3.5rem] p-6 md:p-10 shadow-[8px_8px_0px_#118AB2] border-4 border-[#073B4C] overflow-hidden">
-                    
-                    {/* Inner Loader */}
                     {loading && (
                         <motion.div className="absolute inset-0 z-[60] bg-[#FFD166] flex flex-col items-center justify-center p-6 text-center">
-                            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
-                                <Palette className="w-16 h-16 text-[#EF476F]" />
-                            </motion.div>
+                            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}><Palette className="w-16 h-16 text-[#EF476F]" /></motion.div>
                             <h3 className="text-2xl font-[1000] text-[#073B4C] uppercase mt-4">{loadingStage}</h3>
                             <div className="w-full bg-white/50 h-5 rounded-full mt-6 border-[3px] border-[#073B4C] p-1 overflow-hidden">
                                 <motion.div className="h-full bg-[#EF476F] rounded-full" animate={{ width: `${(progress / 2) * 100}%` }} />
                             </div>
                         </motion.div>
                     )}
-
                     <form onSubmit={clientSubmit} className="space-y-5 md:space-y-6">
                         <label className="relative block group cursor-pointer">
                             <input type="file" onChange={handleFileChange} className="hidden" accept="image/*" />
@@ -248,23 +330,11 @@ export default function StoryGenerator() {
                                 )}
                             </div>
                         </label>
-
                         <div className="space-y-2">
-                            <label className="text-xs font-black text-[#073B4C] uppercase ml-1 flex items-center gap-2">
-                                <Rocket size={14} /> Story Prompt
-                            </label>
-                            <textarea 
-                              name="storyPrompt" 
-                              required 
-                              className="w-full p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-[#F1FAEE] border-2 border-transparent focus:border-[#EF476F] focus:bg-white transition-all min-h-[100px] md:min-h-[120px] outline-none font-bold text-[#073B4C] text-sm md:text-base" 
-                              placeholder="E.g. A space adventure with my cat..." 
-                            />
+                            <label className="text-xs font-black text-[#073B4C] uppercase ml-1 flex items-center gap-2"><Rocket size={14} /> Story Prompt</label>
+                            <textarea name="storyPrompt" required className="w-full p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-[#F1FAEE] border-2 border-transparent focus:border-[#EF476F] focus:bg-white transition-all min-h-[100px] md:min-h-[120px] outline-none font-bold text-[#073B4C] text-sm md:text-base" placeholder="E.g. A space adventure with my cat..." />
                         </div>
-
-                        <button 
-                          disabled={!preview || loading} 
-                          className="w-full py-5 md:py-6 bg-[#EF476F] text-white font-[1000] rounded-[1.5rem] md:rounded-[2rem] shadow-[4px_4px_0px_#C9184A] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-3 text-xl md:text-2xl uppercase border-2 border-white disabled:opacity-50"
-                        >
+                        <button disabled={!preview || loading} className="w-full py-5 md:py-6 bg-[#EF476F] text-white font-[1000] rounded-[1.5rem] md:rounded-[2rem] shadow-[4px_4px_0px_#C9184A] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-3 text-xl md:text-2xl uppercase border-2 border-white disabled:opacity-50">
                             <Sparkles size={24} /> MAKE MAGIC!
                         </button>
                     </form>
@@ -272,44 +342,25 @@ export default function StoryGenerator() {
               </div>
             </motion.div>
           ) : (
-            
             <motion.div key="book-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center pt-4 md:pt-10">
-                
-                {/* 🌈 Responsive Full Gen Loader */}
                 {loading && (
                    <div className="fixed inset-0 z-[200] bg-[#073B4C]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white">
-                      <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="mb-6">
-                        <Star className="w-16 h-16 md:w-20 md:h-20 text-[#FFD166] fill-[#FFD166]" />
-                      </motion.div>
+                      <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="mb-6"><Star className="w-16 h-16 md:w-20 md:h-20 text-[#FFD166] fill-[#FFD166]" /></motion.div>
                       <h3 className="text-4xl md:text-6xl font-[1000] mb-2 uppercase text-[#06D6A0] tracking-tighter">Painting Tale...</h3>
                       <p className="text-lg md:text-xl font-black text-[#FFD166] mb-8 uppercase">{loadingStage}</p>
-                      
                       <div className="w-full max-w-md bg-white/20 h-6 md:h-8 rounded-full border-4 border-white mb-10 p-1 overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-gradient-to-r from-[#EF476F] to-[#FFD166] rounded-full" 
-                          animate={{ width: `${(progress / (output.pages.length || 25)) * 100}%` }} 
-                        />
+                        <motion.div className="h-full bg-gradient-to-r from-[#EF476F] to-[#FFD166] rounded-full" animate={{ width: `${(progress / (output.pages.length || 25)) * 100}%` }} />
                       </div>
-
-                      <button 
-                        onClick={handleCancel} 
-                        className="flex items-center gap-2 px-8 py-4 bg-[#EF476F] border-2 border-white rounded-2xl text-white font-black uppercase shadow-lg active:scale-95"
-                      >
-                        <XCircle size={20} /> Stop
-                      </button>
+                      <button onClick={handleCancel} className="flex items-center gap-2 px-8 py-4 bg-[#EF476F] border-2 border-white rounded-2xl text-white font-black uppercase shadow-lg active:scale-95"><XCircle size={20} /> Stop</button>
                    </div>
                 )}
 
                 <div className="flex w-full justify-start mb-6">
-                    <button 
-                      onClick={() => setOutput(null)} 
-                      className="px-6 py-3 bg-white text-[#073B4C] border-2 border-[#073B4C] rounded-xl font-black flex items-center gap-2 shadow-[3px_3px_0px_#073B4C] active:translate-y-1 active:shadow-none uppercase text-xs"
-                    >
+                    <button onClick={() => setOutput(null)} className="px-6 py-3 bg-white text-[#073B4C] border-2 border-[#073B4C] rounded-xl font-black flex items-center gap-2 shadow-[3px_3px_0px_#073B4C] active:translate-y-1 active:shadow-none uppercase text-xs">
                         <ArrowLeft size={16}/> New Story
                     </button>
                 </div>
                 
-                {/* Book Wrapper (Handles horizontal scroll if needed) */}
                 <div className="w-full overflow-x-auto pb-8 flex justify-center">
                     <div className="min-w-[320px] w-full max-w-4xl">
                         <Book 
@@ -317,7 +368,7 @@ export default function StoryGenerator() {
                           images={output.images} 
                           title={output.title || "MY ADVENTURE"}
                           isPaid={isPaid} 
-                          onPay={handlePaymentAndResume}
+                          onPay={() => setShowCart(true)} // Open Cart instead of starting gen
                           isProcessing={loading}
                         />
                     </div>
@@ -325,6 +376,76 @@ export default function StoryGenerator() {
             </motion.div>
           )}
         </AnimatePresence>
+
+    {/* --- MAGICAL CART MODAL --- */}
+<AnimatePresence>
+  {showCart && (
+    <motion.div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+      <motion.div className="bg-white rounded-[3rem] p-8 md:p-12 max-w-3xl w-full border-[10px] border-[#FFD166] relative">
+        <button onClick={() => { setShowCart(false); setShowShippingForm(false); }} className="absolute top-6 right-6 text-slate-400 hover:text-[#EF476F]"><XCircle size={32} /></button>
+
+        {!showShippingForm ? (
+          /* --- STEP 1: PLAN SELECTION --- */
+          <>
+            <div className="text-center mb-10">
+              <h2 className="text-4xl font-[1000] text-[#073B4C] uppercase tracking-tighter mb-2">Unlock The Magic</h2>
+              <p className="text-[#118AB2] font-black uppercase text-xs">Select your adventure pack</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div onClick={() => handlePlanSelection('ebook')} className="cursor-pointer border-4 border-dashed rounded-[2rem] p-6 bg-blue-50/50 hover:bg-white text-center">
+                <FileDown className="mx-auto text-blue-600 mb-4" size={40} />
+                <h3 className="text-xl font-black text-[#073B4C]">Digital E-Book</h3>
+                <span className="text-3xl font-[1000] text-[#EF476F]">₹499</span>
+              </div>
+              <div onClick={() => handlePlanSelection('hardcopy')} className="cursor-pointer border-4 border-[#06D6A0] rounded-[2rem] p-6 bg-[#F1FAEE] hover:bg-white text-center">
+                <BookOpen className="mx-auto text-green-600 mb-4" size={40} />
+                <h3 className="text-xl font-black text-[#073B4C]">Hardcover Book</h3>
+                <span className="text-3xl font-[1000] text-[#EF476F]">₹1499</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* --- STEP 2: SHIPPING FORM --- */
+          <div className="space-y-6">
+            <div className="text-center">
+                <h2 className="text-3xl font-[1000] text-[#073B4C] uppercase mb-1">Where should we send it?</h2>
+                <p className="text-[#EF476F] font-black text-xs uppercase">We need your delivery details 🚚</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input 
+                  type="tel" placeholder="Phone Number" required
+                  className="w-full p-4 rounded-2xl bg-[#F1FAEE] border-2 border-transparent focus:border-[#06D6A0] outline-none font-bold"
+                  onChange={(e) => setShippingDetails({...shippingDetails, phone: e.target.value})}
+                />
+                <input 
+                  type="text" placeholder="Pincode" required
+                  className="w-full p-4 rounded-2xl bg-[#F1FAEE] border-2 border-transparent focus:border-[#06D6A0] outline-none font-bold"
+                  onChange={(e) => setShippingDetails({...shippingDetails, pincode: e.target.value})}
+                />
+                <textarea 
+                  placeholder="Full Address (House No, Street, Landmark)" required
+                  className="w-full p-4 rounded-2xl bg-[#F1FAEE] border-2 border-transparent focus:border-[#06D6A0] outline-none font-bold md:col-span-2 min-h-[100px]"
+                  onChange={(e) => setShippingDetails({...shippingDetails, address: e.target.value})}
+                />
+            </div>
+
+            <div className="flex gap-4">
+                <button onClick={() => setShowShippingForm(false)} className="flex-1 py-4 font-black text-[#073B4C] uppercase text-xs">Back</button>
+                <button 
+                   disabled={!shippingDetails.phone || !shippingDetails.address}
+                   onClick={() => startPayment('hardcopy')} 
+                   className="flex-[2] py-4 bg-[#06D6A0] text-white rounded-2xl font-[1000] uppercase shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                >
+                    Proceed to Pay ₹1499
+                </button>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
       </main>
     </div>
   );

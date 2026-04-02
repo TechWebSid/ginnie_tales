@@ -8,6 +8,7 @@ const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 export async function POST(req) {
   try {
     if (!process.env.REPLICATE_API_KEY) {
+      console.error("❌ ERROR: REPLICATE_API_KEY is missing in .env.local");
       return Response.json({ success: false, error: "Missing API key" }, { status: 200 });
     }
 
@@ -17,7 +18,10 @@ export async function POST(req) {
     const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY });
     const imageDataUrl = imageBase64?.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`;
 
+    // --- MODE: TEXT GENERATION ---
     if (mode === "generateText") {
+      console.log(`\n🔮 [GENIE] Calling Replicate (Gemini) for Story: "${storyPrompt}"`);
+      
       const output = await replicate.run("google/gemini-2.5-flash", {
         input: {
           images: [imageDataUrl],
@@ -44,12 +48,19 @@ export async function POST(req) {
       
       if (match) {
         const parsed = JSON.parse(match[0]);
+        console.log(`✅ [GENIE] Story Generated: ${parsed.pages.length} pages received.`);
         return Response.json({ success: true, pages: parsed.pages });
       }
+      
+      console.error("❌ [GENIE] Failed to parse JSON from Replicate response.");
       throw new Error("Failed to parse story JSON");
     }
 
+    // --- MODE: IMAGE GENERATION ---
     if (mode === "generateImage") {
+      const logSnippet = pageText?.substring(0, 30) + "...";
+      console.log(`🎨 [GENIE] Generating Image for: "${logSnippet}"`);
+
       const output = await replicate.run(
         "bytedance/flux-pulid:8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b",
         {
@@ -71,6 +82,12 @@ export async function POST(req) {
         finalUrl = typeof img === "string" ? img : img?.url?.() || img?.url || "";
       }
 
+      if (finalUrl) {
+        console.log("🖼️ [GENIE] Image Created Successfully.");
+      } else {
+        console.warn("⚠️ [GENIE] Image Generation returned no URL.");
+      }
+
       return Response.json({ 
         success: !!finalUrl, 
         imageUrl: finalUrl || "https://placehold.co/600x800/png?text=Image+Failed" 
@@ -80,7 +97,7 @@ export async function POST(req) {
     return Response.json({ success: false, error: "Invalid Mode" });
 
   } catch (error) {
-    console.error("❌ API ERROR:", error);
+    console.error("❌ API ERROR:", error.message);
     return Response.json({ success: false, error: error.message });
   }
 }
