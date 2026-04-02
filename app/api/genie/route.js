@@ -1,4 +1,12 @@
 import Replicate from "replicate";
+import { v2 as cloudinary } from 'cloudinary';
+
+// --- CLOUDINARY CONFIGURATION ---
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export const maxDuration = 300; 
 export const dynamic = "force-dynamic";
@@ -7,6 +15,7 @@ const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 export async function POST(req) {
   try {
+    // 1. API Key Check
     if (!process.env.REPLICATE_API_KEY) {
       console.error("❌ ERROR: REPLICATE_API_KEY is missing in .env.local");
       return Response.json({ success: false, error: "Missing API key" }, { status: 200 });
@@ -18,29 +27,29 @@ export async function POST(req) {
     const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY });
     const imageDataUrl = imageBase64?.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`;
 
-    // --- MODE: TEXT GENERATION ---
+    // --- MODE: TEXT GENERATION (Gemini) ---
     if (mode === "generateText") {
       console.log(`\n🔮 [GENIE] Calling Replicate (Gemini) for Story: "${storyPrompt}"`);
       
-    const output = await replicate.run("google/gemini-2.5-flash", {
-    input: {
-      images: [imageDataUrl],
-      prompt: `
-        You are an elite children's book author. Based on this photo and the idea: "${storyPrompt}", 
-        write a short 4-page adventure for testing.
+      const output = await replicate.run("google/gemini-2.5-flash", {
+        input: {
+          images: [imageDataUrl],
+          prompt: `
+            You are an elite children's book author. Based on this photo and the idea: "${storyPrompt}", 
+            write a short 4-page adventure for testing.
 
-        STRUCTURE RULES:
-        - Total Pages: Exactly 4.
-        - Page 1: Introduction.
-        - Page 2: The discovery.
-        - Page 3: The climax/action.
-        - Page 4: The heartwarming conclusion.
-        - Each page must be exactly 1 paragraph (2-3 sentences).
+            STRUCTURE RULES:
+            - Total Pages: Exactly 4.
+            - Page 1: Introduction.
+            - Page 2: The discovery.
+            - Page 3: The climax/action.
+            - Page 4: The heartwarming conclusion.
+            - Each page must be exactly 1 paragraph (2-3 sentences).
 
-        RETURN ONLY A JSON OBJECT:
-        {
-          "pages": ["page 1 text...", "page 2 text...", "page 3 text...", "page 4 text..."]
-        }
+            RETURN ONLY A JSON OBJECT:
+            {
+              "pages": ["page 1 text...", "page 2 text...", "page 3 text...", "page 4 text..."]
+            }
           `,
         },
       });
@@ -58,11 +67,12 @@ export async function POST(req) {
       throw new Error("Failed to parse story JSON");
     }
 
-    // --- MODE: IMAGE GENERATION ---
+    // --- MODE: IMAGE GENERATION (Flux-PuLID + Cloudinary Storage) ---
     if (mode === "generateImage") {
       const logSnippet = pageText?.substring(0, 30) + "...";
       console.log(`🎨 [GENIE] Generating Image for: "${logSnippet}"`);
 
+      // Step 1: Generate Image on Replicate
       const output = await replicate.run(
         "bytedance/flux-pulid:8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b",
         {
@@ -78,21 +88,39 @@ export async function POST(req) {
         }
       );
 
-      let finalUrl = "";
+      // Step 2: Extract Temporary URL from Replicate
+      let tempUrl = "";
       if (Array.isArray(output) && output.length > 0) {
         const img = output[0];
-        finalUrl = typeof img === "string" ? img : img?.url?.() || img?.url || "";
+        tempUrl = typeof img === "string" ? img : img?.url?.() || img?.url || "";
       }
 
-      if (finalUrl) {
-        console.log("🖼️ [GENIE] Image Created Successfully.");
-      } else {
-        console.warn("⚠️ [GENIE] Image Generation returned no URL.");
+      // Step 3: Upload to Cloudinary for Permanent Storage
+      let permanentUrl = "";
+      if (tempUrl) {
+        console.log("📤 [GENIE] Replicate URL received. Moving to Cloudinary...");
+        try {
+          const uploadRes = await cloudinary.uploader.upload(tempUrl, {
+            folder: "ginnie_tales_library", // Images is folder mein save hongi
+            transformation: [
+              { quality: "auto", fetch_format: "auto" } // Auto optimization for 42KB range
+            ]
+          });
+          permanentUrl = uploadRes.secure_url;
+          console.log("✅ [GENIE] Image stored permanently in Cloudinary.");
+        } catch (cloudinaryError) {
+          console.error("⚠️ [GENIE] Cloudinary Upload Failed, falling back to Replicate URL:", cloudinaryError.message);
+          permanentUrl = tempUrl; // Fail safe
+        }
+      }
+
+      if (!permanentUrl) {
+        console.warn("⚠️ [GENIE] Both Replicate and Cloudinary failed.");
       }
 
       return Response.json({ 
-        success: !!finalUrl, 
-        imageUrl: finalUrl || "https://placehold.co/600x800/png?text=Image+Failed" 
+        success: !!permanentUrl, 
+        imageUrl: permanentUrl || "https://placehold.co/600x800/png?text=Image+Failed" 
       });
     }
 
