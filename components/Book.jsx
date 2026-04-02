@@ -75,62 +75,174 @@ export default function Book({
     setView("closed-front");
   };
 
+const downloadPDF = async () => {
+    try {
+      const frontCoverImg = images[0] || "https://placehold.co/600x800?text=My+Story";
 
-  const downloadPDF = async () => {
-  try {
-    // Basic Layout for Puppeteer
-    const htmlContent = `
-      <html>
-        <head>
-          <style>
-            body { margin: 0; padding: 0; background: #FEF9EF; }
-            .page { 
-              width: 297mm; height: 210mm; 
-              display: flex; page-break-after: always; 
-              border: 15px solid white; box-sizing: border-box;
-            }
-            .img-container { width: 50%; height: 100%; }
-            .img-container img { width: 100%; height: 100%; object-fit: cover; }
-            .text-container { 
-              width: 50%; padding: 50px; display: flex; 
-              align-items: center; justify-content: center; 
-              font-family: sans-serif; font-size: 22px; color: #073B4C; line-height: 1.6;
-            }
-          </style>
-        </head>
-        <body>
-          ${pages.map((text, i) => `
-            <div class="page">
-              <div class="img-container"><img src="${images[i]}" /></div>
-              <div class="text-container"><p>${text}</p></div>
+      const htmlContent = `
+        <html>
+          <head>
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&family=Inter:ital,wght@0,400;0,700;0,900;1,900&display=swap');
+              
+              body { margin: 0; padding: 0; background: #FEF9EF; font-family: 'Inter', sans-serif; color: #1A365D; }
+              
+              .page { 
+                width: 297mm; height: 210mm; 
+                display: flex; page-break-after: always; 
+                border: 15px solid white; box-sizing: border-box;
+                position: relative; overflow: hidden;
+              }
+
+              /* --- FRONT COVER Fix (Centered Text) --- */
+              .front-cover {
+                background: #000;
+                justify-content: flex-end; /* Pushes content to bottom */
+                align-items: center; /* Horizontally centers */
+              }
+              .hero-bg {
+                position: absolute; inset: 0;
+                width: 100%; height: 100%;
+                object-fit: cover;
+                opacity: 0.9;
+                z-index: 1;
+              }
+              .vignette {
+                position: absolute; inset: 0;
+                background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 60%);
+                z-index: 2;
+              }
+              .cover-footer {
+                position: relative; z-index: 10;
+                padding-bottom: 60px; /* Moves text just below face */
+                text-align: center;
+                width: 100%; /* Ensures inner centering */
+              }
+              .generic-title { 
+                font-size: 50px;
+                font-weight: 900; font-style: italic;
+                color: #FFD166;
+                margin: 0;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                text-shadow: 0 10px 20px rgba(0,0,0,0.5);
+              }
+
+              /* --- STORY PAGES Fix (Images Back) --- */
+              .img-container { width: 50%; height: 100%; border-right: 10px solid white; }
+              .img-container img { width: 100%; height: 100%; object-fit: cover; }
+              
+              /* Typography from website style */
+              .text-container { 
+                width: 50%; padding: 60px; 
+                display: flex; align-items: center; justify-content: center; 
+                position: relative;
+                background: #FFFCF9;
+              }
+              .story-text {
+                font-size: 38px; line-height: 1.3; font-weight: 800; letter-spacing: -1px; margin: 0;
+                color: #1A365D;
+              }
+              .story-text::first-letter {
+                color: #EF476F; font-family: 'Plus Jakarta Sans', sans-serif; float: left;
+                font-size: 110px; line-height: 0.8; padding-right: 15px; font-weight: 900;
+              }
+
+              /* Pagination Footer */
+              .footer {
+                position: absolute; bottom: 50px; left: 60px; right: 60px;
+                display: flex; justify-content: space-between; align-items: center;
+                border-top: 2px solid #F0F0F0; padding-top: 20px;
+                width: calc(100% - 120px);
+              }
+              .page-info { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 14px; letter-spacing: 2px; }
+              .sparkle-icon { color: #EF476F; font-size: 20px; }
+              
+              .dots { display: flex; gap: 8px; }
+              .dot { width: 10px; height: 10px; border-radius: 50%; background: #E2E8F0; }
+              .dot.active { width: 25px; border-radius: 10px; background: #EF476F; }
+
+              /* --- BACK COVER DESIGN (PREMIUM) --- */
+              .back-cover {
+                background: #EF476F;
+                color: white; border: none;
+                justify-content: center; align-items: center;
+              }
+              .back-inner {
+                width: 85%; height: 85%;
+                border: 8px double rgba(255,255,255,0.3);
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+              }
+            </style>
+          </head>
+          <body>
+            
+            <div class="page front-cover">
+              <img src="${frontCoverImg}" class="hero-bg" />
+              <div class="vignette"></div>
+              <div class="cover-footer">
+                <div style="font-size: 12px; letter-spacing: 8px; margin-bottom: 20px; color: #06D6A0; font-weight: 900;">A GINNIETALES ORIGINAL</div>
+                <h1 class="generic-title">A MAGICAL STORY INSIDE</h1>
+              </div>
             </div>
-          `).join('')}
-        </body>
-      </html>
-    `;
 
-    const res = await fetch("/api/pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html: htmlContent }),
-    });
+            ${pages.map((text, i) => `
+              <div class="page">
+                <div class="img-container">
+                  <img src="${images[i] || images[0]}" />
+                </div>
+                <div class="text-container">
+                    <p class="story-text">${text}</p>
+                    
+                    <div class="footer">
+                      <div class="page-info">
+                        <span class="sparkle-icon">✨</span>
+                        PAGE ${i + 1} / ${pages.length}
+                      </div>
+                      <div class="dots">
+                        ${pages.map((_, dotIdx) => `
+                          <div class="dot ${dotIdx === i ? 'active' : ''}"></div>
+                        `).join('')}
+                      </div>
+                    </div>
+                </div>
+              </div>
+            `).join('')}
 
-    if (!res.ok) throw new Error("PDF generation failed");
+            <div class="page back-cover">
+              <div class="back-inner">
+                <div style="font-size: 60px; margin-bottom: 20px;">📖</div>
+                <h2 style="font-size: 100px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0; text-transform: uppercase;">The End</h2>
+                <p style="letter-spacing: 5px; font-weight: 900; margin-top: 20px; color: #073B4C;">YOUR ADVENTURE LIVES ON</p>
+                <div style="margin-top: 60px; font-size: 24px; font-weight: 900; font-style: italic; color: #FFD166; letter-spacing: 4px;">GinnieTales.in</div>
+              </div>
+            </div>
 
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${title.replace(/\s+/g, '_')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (err) {
-    console.error(err);
-    alert("PDF download failed. Check console.");
-  }
-};
+          </body>
+        </html>
+      `;
 
+      const res = await fetch("/api/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html: htmlContent }),
+      });
+
+      if (!res.ok) throw new Error("PDF generation failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${title.replace(/\s+/g, '_')}_MagicBook.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("PDF Error:", err);
+      alert("Magic failed! Make sure all images are loaded.");
+    }
+  };
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-6xl mx-auto">
       <AnimatePresence mode="wait">
