@@ -70,145 +70,160 @@ const [shippingDetails, setShippingDetails] = useState({
   };
   // --- RAZORPAY PAYMENT FLOW ---
 // --- UPDATED RAZORPAY PAYMENT FLOW ---
-  const startPayment = async (plan) => {
-    // If user chose hardcopy but hasn't filled address, show form first
-    if (plan === "hardcopy" && !showShippingForm) {
-      setShowShippingForm(true);
-      return;
+const startPayment = async (plan) => {
+  // 1. Validation for Hardcopy address
+  if (plan === "hardcopy" && (!shippingDetails.phone || !shippingDetails.address)) {
+    setShowShippingForm(true);
+    return;
+  }
+
+  // 2. Check if Razorpay script is actually loaded
+  if (!window.Razorpay) {
+    alert("Razorpay SDK failed to load. Are you online?");
+    return;
+  }
+
+  setLoading(true);
+  setLoadingStage("💎 Preparing Checkout...");
+  const price = plan === "hardcopy" ? 1499 : 499;
+
+  try {
+    const res = await fetch("/api/razorpay/order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        amount: price, 
+        storyId: storyId, 
+        planType: plan 
+      }),
+    });
+    
+    const { order } = await res.json();
+
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
+      amount: order.amount,
+      currency: "INR",
+      name: "Genie Tales",
+      description: plan === "hardcopy" ? "Hardcover + Digital E-Book" : "Digital E-Book Only",
+      order_id: order.id,
+      handler: async function (response) {
+        // We stay in loading state while verifying
+        await verifyAndStartMagic(response, plan);
+      },
+      prefill: {
+        email: user?.email || "",
+        contact: shippingDetails.phone || "" 
+      },
+      theme: { color: "#EF476F" },
+      modal: {
+        ondismiss: function() {
+          setLoading(false); // Stop loading if user closes the popup
+        }
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  } catch (err) {
+    console.error("Payment Init Error:", err);
+    alert("Payment failed to initialize.");
+    setLoading(false);
+  }
+};
+
+const verifyAndStartMagic = async (rzpResponse, plan) => {
+  setLoading(true);
+  setLoadingStage("🛡️ Verifying Payment...");
+
+  try {
+    const res = await fetch("/api/razorpay/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...rzpResponse,
+        storyId: storyId, // The ID of the story created in clientSubmit
+        planType: plan,
+        userId: user?.uid,
+        shipping: plan === "hardcopy" ? shippingDetails : null 
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      setIsPaid(true);
+      setShowCart(false);
+      setShowShippingForm(false);
+      // Start the heavy lifting of AI generation
+      await generateRemainingPages(); 
+    } else {
+      alert("Payment verification failed. Please check your dashboard or contact support.");
+      setLoading(false);
     }
+  } catch (err) {
+    console.error("Verification Error:", err);
+    alert("Connection error during verification.");
+    setLoading(false);
+  }
+};
 
-    setLoading(true);
-    setLoadingStage("💎 Preparing Checkout...");
-    const price = plan === "hardcopy" ? 1499 : 499;
+  // Full Story Generation (Post-Payment)
+ const generateRemainingPages = async () => {
+  if (!output || !storyId) return;
+  
+  setLoading(true);
+  setIsCancelled(false);
+  const updatedImages = [...output.images];
 
-    try {
-      // 1. Create Order on Server
-      const res = await fetch("/api/razorpay/order", {
+  try {
+    // Loop through the locked pages (starting from page 3)
+    for (let i = 2; i < output.pages.length; i++) {
+      if (isCancelled) break;
+      setLoadingStage(`🎨 Painting Page ${i + 1}...`);
+      setProgress(i + 1);
+
+      abortControllerRef.current = new AbortController();
+
+      const imgRes = await fetch("/api/genie", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          amount: price, 
-          storyId: storyId, 
-          planType: plan 
+          imageBase64: preview, 
+          pageText: output.pages[i], 
+          mode: "generateImage" 
         }),
+        signal: abortControllerRef.current.signal
+      });
+
+      const imgData = await imgRes.json();
+      
+      // Update local state immediately so user sees the progress
+      updatedImages[i] = imgData.imageUrl || "https://placehold.co/600x800/png?text=Error";
+      setOutput(prev => ({ ...prev, images: [...updatedImages] }));
+    }
+
+    if (!isCancelled) {
+      // Final DB Sync
+      await updateDoc(doc(db, "stories", storyId), {
+        images: updatedImages,
+        status: "completed", // Dashboard looks for this!
+        paid: true,
+        lastUpdated: serverTimestamp()
       });
       
-      const { order } = await res.json();
-
-      // 2. Open Razorpay Modal
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
-        amount: order.amount,
-        currency: "INR",
-        name: "Genie Tales",
-        description: plan === "hardcopy" ? "Hardcover + Digital E-Book" : "Digital E-Book Only",
-        order_id: order.id,
-        handler: async function (response) {
-          // Pass the shipping details to the verification function
-          await verifyAndStartMagic(response, plan);
-        },
-        prefill: {
-          email: user?.email || "",
-          contact: shippingDetails.phone || "" // Pre-fill phone if available
-        },
-        theme: { color: "#EF476F" },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      console.error("Payment Init Error:", err);
-      alert("Payment failed to initialize. Please check your connection.");
-    } finally {
+      setLoadingStage("✨ Tale Completed!");
+      // Briefly show success then let the user see the book
+      setTimeout(() => setLoading(false), 2000);
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.error("Generation Error:", err);
+      setError("The magic was interrupted.");
       setLoading(false);
     }
-  };
-
-  const verifyAndStartMagic = async (rzpResponse, plan) => {
-    console.log("DEBUG: storyId state is currently:", storyId);
-    console.log("DEBUG: rzpResponse is:", rzpResponse);
-    
-    setLoading(true);
-    setLoadingStage("🛡️ Verifying Payment...");
-
-    try {
-      const res = await fetch("/api/razorpay/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...rzpResponse,
-          storyId,
-          planType: plan,
-          userId: user.uid,
-          // Include shipping details only if the plan is hardcopy
-          shipping: plan === "hardcopy" ? shippingDetails : null 
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setIsPaid(true);
-        setShowCart(false);
-        setShowShippingForm(false); // Close the form on success
-        await generateRemainingPages(); // Start the AI loop
-      } else {
-        alert("Verification failed. Please contact support if amount was deducted.");
-      }
-    } catch (err) {
-      console.error("Verification Error:", err);
-      alert("Something went wrong during verification.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Full Story Generation (Post-Payment)
-  const generateRemainingPages = async () => {
-    if (!output || !storyId) return;
-    
-    setLoading(true);
-    setIsCancelled(false);
-    const updatedImages = [...output.images];
-
-    try {
-      for (let i = 2; i < output.pages.length; i++) {
-        if (isCancelled) break;
-        setLoadingStage(`🎨 Painting Page ${i + 1}...`);
-        setProgress(i + 1);
-
-        abortControllerRef.current = new AbortController();
-
-        const imgRes = await fetch("/api/genie", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            imageBase64: preview, 
-            pageText: output.pages[i], 
-            mode: "generateImage" 
-          }),
-          signal: abortControllerRef.current.signal
-        });
-
-        const imgData = await imgRes.json();
-        updatedImages[i] = imgData.imageUrl || "https://placehold.co/600x800/png?text=Error";
-        setOutput(prev => ({ ...prev, images: [...updatedImages] }));
-      }
-
-      if (!isCancelled) {
-        await updateDoc(doc(db, "stories", storyId), {
-          images: updatedImages,
-          status: "completed",
-          paid: true
-        });
-        setLoadingStage("✨ Tale Completed!");
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError') setError("The magic was interrupted.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
+};
 
   // Initial Genie Trigger (First 2 Pages)
   const clientSubmit = async (e) => {
@@ -349,7 +364,7 @@ const [shippingDetails, setShippingDetails] = useState({
                       <h3 className="text-4xl md:text-6xl font-[1000] mb-2 uppercase text-[#06D6A0] tracking-tighter">Painting Tale...</h3>
                       <p className="text-lg md:text-xl font-black text-[#FFD166] mb-8 uppercase">{loadingStage}</p>
                       <div className="w-full max-w-md bg-white/20 h-6 md:h-8 rounded-full border-4 border-white mb-10 p-1 overflow-hidden">
-                        <motion.div className="h-full bg-gradient-to-r from-[#EF476F] to-[#FFD166] rounded-full" animate={{ width: `${(progress / (output.pages.length || 25)) * 100}%` }} />
+                        <motion.div className="h-full bg-gradient-to-r from-[#EF476F] to-[#FFD166] rounded-full" animate={{ width: `${(progress / (output.pages.length || 4)) * 100}%` }} />
                       </div>
                       <button onClick={handleCancel} className="flex items-center gap-2 px-8 py-4 bg-[#EF476F] border-2 border-white rounded-2xl text-white font-black uppercase shadow-lg active:scale-95"><XCircle size={20} /> Stop</button>
                    </div>

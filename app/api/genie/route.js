@@ -22,23 +22,25 @@ export async function POST(req) {
     if (mode === "generateText") {
       console.log(`\n🔮 [GENIE] Calling Replicate (Gemini) for Story: "${storyPrompt}"`);
       
-      const output = await replicate.run("google/gemini-2.5-flash", {
-        input: {
-          images: [imageDataUrl],
-          prompt: `
-            You are an elite children's book author. Based on this photo and the idea: "${storyPrompt}", 
-            write a cinematic 25-page adventure.
+    const output = await replicate.run("google/gemini-2.5-flash", {
+    input: {
+      images: [imageDataUrl],
+      prompt: `
+        You are an elite children's book author. Based on this photo and the idea: "${storyPrompt}", 
+        write a short 4-page adventure for testing.
 
-            STRUCTURE RULES:
-            - Page 1: Introduction to the hero and their world.
-            - Pages 2-24: Rising action, discovery, challenges, and magic.
-            - Page 25: A heartwarming and epic conclusion.
-            - Each page must be exactly 1 paragraph (2-3 sentences).
+        STRUCTURE RULES:
+        - Total Pages: Exactly 4.
+        - Page 1: Introduction.
+        - Page 2: The discovery.
+        - Page 3: The climax/action.
+        - Page 4: The heartwarming conclusion.
+        - Each page must be exactly 1 paragraph (2-3 sentences).
 
-            RETURN ONLY A JSON OBJECT:
-            {
-              "pages": ["page 1 text...", "page 2 text...", ... "page 25 text..."]
-            }
+        RETURN ONLY A JSON OBJECT:
+        {
+          "pages": ["page 1 text...", "page 2 text...", "page 3 text...", "page 4 text..."]
+        }
           `,
         },
       });

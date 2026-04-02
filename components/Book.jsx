@@ -75,6 +75,62 @@ export default function Book({
     setView("closed-front");
   };
 
+
+  const downloadPDF = async () => {
+  try {
+    // Basic Layout for Puppeteer
+    const htmlContent = `
+      <html>
+        <head>
+          <style>
+            body { margin: 0; padding: 0; background: #FEF9EF; }
+            .page { 
+              width: 297mm; height: 210mm; 
+              display: flex; page-break-after: always; 
+              border: 15px solid white; box-sizing: border-box;
+            }
+            .img-container { width: 50%; height: 100%; }
+            .img-container img { width: 100%; height: 100%; object-fit: cover; }
+            .text-container { 
+              width: 50%; padding: 50px; display: flex; 
+              align-items: center; justify-content: center; 
+              font-family: sans-serif; font-size: 22px; color: #073B4C; line-height: 1.6;
+            }
+          </style>
+        </head>
+        <body>
+          ${pages.map((text, i) => `
+            <div class="page">
+              <div class="img-container"><img src="${images[i]}" /></div>
+              <div class="text-container"><p>${text}</p></div>
+            </div>
+          `).join('')}
+        </body>
+      </html>
+    `;
+
+    const res = await fetch("/api/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: htmlContent }),
+    });
+
+    if (!res.ok) throw new Error("PDF generation failed");
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${title.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    console.error(err);
+    alert("PDF download failed. Check console.");
+  }
+};
+
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-6xl mx-auto">
       <AnimatePresence mode="wait">
@@ -211,9 +267,12 @@ export default function Book({
         </button>
 
         {view === "open" && isPaid && (
-          <button onClick={() => alert("Downloading HD PDF...")} className="px-8 py-4 bg-[#06D6A0] text-white rounded-2xl shadow-[4px_4px_0px_#059669] font-[1000] flex items-center gap-3 hover:scale-105 active:scale-95 transition-all uppercase text-xs border-2 border-white">
-            <FileDown size={18} /> Save PDF
-          </button>
+        <button 
+  onClick={downloadPDF} 
+  className="px-8 py-4 bg-[#06D6A0] text-white rounded-2xl shadow-[4px_4px_0px_#059669] font-[1000] flex items-center gap-3 hover:scale-105 active:scale-95 transition-all uppercase text-xs border-2 border-white"
+>
+  <FileDown size={18} /> Save PDF
+</button>
         )}
 
         <button 
