@@ -107,12 +107,17 @@ export default function Book({
                 <div class="order-link">ORDER YOUR STORYBOOK AT GINNIETALES.COM</div>
               </div>
             </div>
-            ${pages.map((text, i) => `
-              <div class="page">
-                <div class="img-container"><img src="${images[i] || images[0]}" /></div>
-                <div class="text-container"><p class="story-text">${text}</p></div>
-              </div>
-            `).join('')}
+         ${pages.map((text, i) => `
+  <div class="page">
+    <div class="img-container">
+      {/* i + 1 isliye taaki PDF mein bhi Story Page 1 ki image images[1] ho */}
+      <img src="${images[i + 1] || images[i] || images[0]}" />
+    </div>
+    <div class="text-container">
+      <p class="story-text">${text}</p>
+    </div>
+  </div>
+`).join('')}
             <div class="page back-cover">
               <div class="back-inner">
                 <div style="font-size: 80px; margin-bottom: 20px;">🧞‍♂️</div>
@@ -141,67 +146,68 @@ export default function Book({
       <AnimatePresence mode="wait">
         
         {/* --- FRONT COVER PREVIEW (MATCHES PDF) --- */}
-        {view === "closed-front" && (
-          <motion.div key="front" 
-            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ rotateY: -90, opacity: 0 }}
-            transition={{ duration: 0.8, ease: "circOut" }}
-            className="relative w-[320px] h-[460px] md:w-[380px] md:h-[540px] shadow-[20px_20px_0px_#073B4C] rounded-[3rem] p-0 bg-black cursor-pointer border-8 border-white overflow-hidden"
-            onClick={handleNext}
-          >
-            <img src={images[0]} className="absolute inset-0 w-full h-full object-cover" alt="Cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
-            <div className="absolute inset-0 flex flex-col items-center justify-end pb-10 px-6 text-center z-20">
-                <h1 className="text-2xl md:text-3xl font-[1000] text-[#FFD166] italic uppercase leading-tight tracking-tight mb-2">A MAGICAL STORY INSIDE</h1>
-                <div className="text-[#06D6A0] font-black italic text-sm tracking-widest mb-1 uppercase">Crafted by GinnieTales ✨</div>
-                <div className="text-white/60 font-bold text-[8px] tracking-[0.2em] uppercase">Order your storybook at GinnieTales.com</div>
-                <div className="mt-6 text-white/40 text-[10px] font-black tracking-widest animate-pulse uppercase">Tap to Read</div>
-            </div>
-          </motion.div>
-        )}
+      {view === "closed-front" && (
+  <motion.div key="front" 
+    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ rotateY: -90, opacity: 0 }}
+    transition={{ duration: 0.8, ease: "circOut" }}
+    className="relative w-[320px] h-[460px] md:w-[380px] md:h-[540px] shadow-[20px_20px_0px_#073B4C] rounded-[3rem] p-0 bg-black cursor-pointer border-8 border-white overflow-hidden"
+    onClick={handleNext}
+  >
+    {/* Hamesha array ki pehli image (Cover) dikhayega */}
+    <img src={images[0]} className="absolute inset-0 w-full h-full object-cover" alt="Cover" />
+    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
+    <div className="absolute inset-0 flex flex-col items-center justify-end pb-10 px-6 text-center z-20">
+        <h1 className="text-2xl md:text-3xl font-[1000] text-[#FFD166] italic uppercase leading-tight tracking-tight mb-2">A MAGICAL STORY INSIDE</h1>
+        <div className="text-[#06D6A0] font-black italic text-sm tracking-widest mb-1 uppercase">Crafted by GinnieTales ✨</div>
+        <div className="text-white/60 font-bold text-[8px] tracking-[0.2em] uppercase">Order your storybook at GinnieTales.com</div>
+        <div className="mt-6 text-white/40 text-[10px] font-black tracking-widest animate-pulse uppercase">Tap to Read</div>
+    </div>
+  </motion.div>
+)}
 
         {/* --- MAIN STORY VIEW --- */}
-        {view === "open" && (
-          <motion.div key="open" 
-            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-5xl bg-white rounded-[2.5rem] md:rounded-[4rem] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col lg:flex-row overflow-hidden border-[8px] md:border-[12px] border-white min-h-[550px] relative"
-          >
-            <div className="w-full lg:w-1/2 h-[300px] lg:h-[650px] bg-[#F1FAEE] relative overflow-hidden">
-                <img 
-                  src={images[pageIndex] || images[0]} 
-                  className={`w-full h-full object-cover transition-all duration-700 ${isLockedPage || (isPaid && isImageLoading) ? 'blur-2xl grayscale brightness-50' : ''}`} 
-                  alt="Illustration" 
-                />
-              {isLockedPage && !isProcessing && (
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-8 text-center text-white bg-[#073B4C]/60 backdrop-blur-md">
-                  <div className="w-20 h-20 bg-[#FFD166] rounded-full flex items-center justify-center mb-6 shadow-2xl animate-bounce">
-                    <Lock className="w-10 h-10 text-[#073B4C]" />
-                  </div>
-                  <h3 className="text-3xl font-[1000] mb-2 tracking-tighter uppercase">The Tale Paused...</h3>
-                  <button onClick={onPay} className="group flex items-center gap-3 px-8 py-5 bg-[#EF476F] text-white font-[1000] rounded-2xl shadow-[0_10px_0px_#C9184A] hover:translate-y-1 hover:shadow-none transition-all uppercase text-sm">
-                    <Zap fill="currentColor" size={18} /> Unlock Magic
-                  </button>
-                </div>
-              )}
-            </div>
+      {view === "open" && (
+  <motion.div key="open" 
+    initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+    className="w-full max-w-5xl bg-white rounded-[2.5rem] md:rounded-[4rem] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col lg:flex-row overflow-hidden border-[8px] md:border-[12px] border-white min-h-[550px] relative"
+  >
+    <div className="w-full lg:w-1/2 h-[300px] lg:h-[650px] bg-[#F1FAEE] relative overflow-hidden">
+        <img 
+          // pageIndex + 1 taaki images[1] se shuru ho
+          src={images[pageIndex + 1] || images[pageIndex] || images[0]} 
+          className={`w-full h-full object-cover transition-all duration-700 ${isLockedPage || (isPaid && isImageLoading) ? 'blur-2xl grayscale brightness-50' : ''}`} 
+          alt="Illustration" 
+        />
+      {isLockedPage && !isProcessing && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-8 text-center text-white bg-[#073B4C]/60 backdrop-blur-md">
+          <div className="w-20 h-20 bg-[#FFD166] rounded-full flex items-center justify-center mb-6 shadow-2xl animate-bounce">
+            <Lock className="w-10 h-10 text-[#073B4C]" />
+          </div>
+          <h3 className="text-3xl font-[1000] mb-2 tracking-tighter uppercase">The Tale Paused...</h3>
+          <button onClick={onPay} className="group flex items-center gap-3 px-8 py-5 bg-[#EF476F] text-white font-[1000] rounded-2xl shadow-[0_10px_0px_#C9184A] hover:translate-y-1 hover:shadow-none transition-all uppercase text-sm">
+            <Zap fill="currentColor" size={18} /> Unlock Magic
+          </button>
+        </div>
+      )}
+    </div>
 
-            <div className="w-full lg:w-1/2 h-[400px] lg:h-[650px] flex flex-col bg-[#FFFCF9] p-8 lg:p-16 relative">
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <p className={`${isLockedPage ? 'blur-md opacity-20' : ''} text-lg lg:text-xl font-bold text-[#073B4C] leading-[1.8] first-letter:text-7xl first-letter:font-[1000] first-letter:text-[#EF476F] first-letter:mr-3 first-letter:float-left first-letter:leading-[0.8] pt-2`}>
-                  {pages[pageIndex]}
-                </p>
-              </div>
-              <div className="mt-8 border-t-4 border-[#F1FAEE] pt-6 flex justify-between items-center">
-                  <span className="font-[1000] text-[10px] text-[#118AB2] uppercase tracking-widest">Page {pageIndex + 1} / {pages.length}</span>
-                  <div className="flex gap-1.5">
-                    {Array.from({ length: Math.min(pages.length, 10) }).map((_, i) => (
-                      <div key={i} className={`h-2 rounded-full transition-all duration-500 ${pageIndex % 10 === i ? 'bg-[#EF476F] w-6' : 'bg-[#06D6A0]/20 w-2'}`} />
-                    ))}
-                  </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
+    <div className="w-full lg:w-1/2 h-[400px] lg:h-[650px] flex flex-col bg-[#FFFCF9] p-8 lg:p-16 relative">
+      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        <p className={`${isLockedPage ? 'blur-md opacity-20' : ''} text-lg lg:text-xl font-bold text-[#073B4C] leading-[1.8] first-letter:text-7xl first-letter:font-[1000] first-letter:text-[#EF476F] first-letter:mr-3 first-letter:float-left first-letter:leading-[0.8] pt-2`}>
+          {pages[pageIndex]}
+        </p>
+      </div>
+      <div className="mt-8 border-t-4 border-[#F1FAEE] pt-6 flex justify-between items-center">
+          <span className="font-[1000] text-[10px] text-[#118AB2] uppercase tracking-widest">Page {pageIndex + 1} / {pages.length}</span>
+          <div className="flex gap-1.5">
+            {Array.from({ length: Math.min(pages.length, 10) }).map((_, i) => (
+              <div key={i} className={`h-2 rounded-full transition-all duration-500 ${pageIndex % 10 === i ? 'bg-[#EF476F] w-6' : 'bg-[#06D6A0]/20 w-2'}`} />
+            ))}
+          </div>
+      </div>
+    </div>
+  </motion.div>
+)}
         {/* --- BACK COVER PREVIEW (PURPLE THEME) --- */}
         {view === "closed-back" && (
           <motion.div key="back" initial={{ rotateY: 90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }} transition={{ duration: 0.8 }}
