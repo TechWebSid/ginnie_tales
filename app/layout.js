@@ -22,14 +22,12 @@ export default function RootLayout({ children }) {
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning // 👈 Yahan add karo
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning> 
         <Navbar/>
-        {children}
-
-
+        <main className="flex-1">{children}</main> {/* flex-1 ensures it pushes footer down if any */}
       </body>
-     
     </html>
   );
 }

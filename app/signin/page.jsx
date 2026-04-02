@@ -54,7 +54,7 @@ export default function SignIn() {
     if (role === "admin") {
       router.push("/admin/dashboard");
     } else if (role === "operational") {
-      router.push("/operational/dashboard");
+      router.push("/operations");
     } else {
       router.push("/dashboard");
     }
