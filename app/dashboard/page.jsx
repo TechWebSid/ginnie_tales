@@ -7,6 +7,7 @@ import Link from "next/link";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import RoleGuard from "@/components/auth/RoleGuard";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function Dashboard() {
   if (loading) return <LoadingScreen />;
 
   return (
+    <RoleGuard allowedRoles={["explorer"]}>
     <div className="min-h-screen bg-[#F8FAFF] pb-20">
     
 
@@ -102,6 +104,7 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+      </RoleGuard>
   );
 }
 
@@ -155,5 +158,6 @@ function LoadingScreen() {
        </motion.div>
        <h2 className="text-2xl font-black text-slate-400 uppercase tracking-[0.5em] animate-pulse">Loading Magic...</h2>
     </div>
+  
   );
 }

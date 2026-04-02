@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 
 import Script from "next/script";
 import { XCircle, Sparkles } from "lucide-react";
+import RoleGuard from "@/components/auth/RoleGuard";
 
 const StatusBadge = ({ status }) => {
   const styles = {
@@ -140,6 +141,7 @@ const startUpgradePayment = async () => {
 
 
  return (
+  <RoleGuard allowedRoles={["explorer"]}>
   <div className="min-h-screen bg-[#FEF9EF] p-6 md:p-12 font-sans">
     <div className="max-w-6xl mx-auto">
       
@@ -303,5 +305,6 @@ const startUpgradePayment = async () => {
       )}
     </AnimatePresence>
   </div>
+  </RoleGuard>
 );
 }
