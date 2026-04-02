@@ -9,27 +9,25 @@ import { useRouter } from "next/navigation";
 // Firebase Imports
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Navbar() {
   const router = useRouter();
   const [isOpen, setOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+const { user, loading } = useAuth();
+ 
 
-  // 1. Listen for Auth State Changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+ 
 
   // 2. Logout Logic
-  const handleLogout = async () => {
-    await signOut(auth);
-    setOpen(false);
-    router.push("/");
+const handleLogout = async () => {
+    try {
+      setOpen(false); // Menu band karo
+      await signOut(auth);
+      router.replace("/"); // replace use karna better hai logout par
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
   };
 
   const navLinks = [

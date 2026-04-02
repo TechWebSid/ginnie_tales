@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; // 👈 Yeh line missing thi
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -8,7 +8,7 @@ import { doc, getDoc } from "firebase/firestore";
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
-  const [userData, setUserData] = useState(null); // Added to store Firestore data (like name)
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export function useAuth() {
           if (userDoc.exists()) {
             const data = userDoc.data();
             setRole(data.role);
-            setUserData(data); // This contains the fixed displayName from DB
+            setUserData(data);
           } else {
             setRole("user");
           }
@@ -39,5 +39,5 @@ export function useAuth() {
     return () => unsubscribe();
   }, []);
 
-  return { user, role, userData, loading }; // Now returning userData
+  return { user, role, userData, loading };
 }
