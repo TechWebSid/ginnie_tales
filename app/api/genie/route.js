@@ -89,11 +89,13 @@ export async function POST(req) {
       );
 
       // Step 2: Extract Temporary URL from Replicate
-      let tempUrl = "";
-      if (Array.isArray(output) && output.length > 0) {
-        const img = output[0];
-        tempUrl = typeof img === "string" ? img : img?.url?.() || img?.url || "";
-      }
+   let tempUrl = "";
+if (Array.isArray(output) && output.length > 0) {
+  const img = output[0];
+  // .toString() add kiya hai taaki URL object string ban jaye
+  const rawUrl = typeof img === "string" ? img : img?.url?.() || img?.url || "";
+  tempUrl = String(rawUrl).trim(); 
+}
 
       // Step 3: Upload to Cloudinary for Permanent Storage
       let permanentUrl = "";
