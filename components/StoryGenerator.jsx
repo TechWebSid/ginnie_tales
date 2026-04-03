@@ -199,24 +199,56 @@ export default function StoryGenerator() {
     } catch (err) { setLoading(false); }
   };
 
-  const verifyAndStartMagic = async (rzpResponse, plan) => {
-    setLoading(true);
-    setLoadingStage("🛡️ Verifying Payment...");
-    try {
-      const res = await fetch("/api/razorpay/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...rzpResponse, storyId, planType: plan, userId: user?.uid, shipping: plan === "hardcopy" ? shippingDetails : null }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsPaid(true);
-        setShowCart(false);
-        await generateRemainingPages(); 
-      }
-    } catch (err) { setLoading(false); }
-  };
+ const verifyAndStartMagic = async (rzpResponse, plan) => {
+  setLoading(true);
+  setLoadingStage("🛡️ Verifying Payment...");
+  
+  // FIX 1: Define priceInPaise inside this function
+  const priceInPaise = plan === "hardcopy" ? 149900 : 49900;
 
+  try {
+    const res = await fetch("/api/razorpay/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        ...rzpResponse, 
+        storyId, 
+        planType: plan, 
+        userId: user?.uid, 
+        amount: priceInPaise, // Now this will work
+        shipping: plan === "hardcopy" ? shippingDetails : null 
+      }),
+    });
+
+    const data = await res.json();
+    
+    if (data.success) {
+      setLoadingStage("✨ Payment Verified! Starting Magic...");
+      setIsPaid(true);
+      setShowCart(false);
+
+      // FIX 2: Thoda intezaar karein taaki backend update confirm ho jaye
+      // Phir generation call karein
+      setTimeout(async () => {
+        try {
+          await generateRemainingPages(); 
+          console.log("Generation started successfully");
+        } catch (genErr) {
+          console.error("Generation Trigger Error:", genErr);
+          // Agar generation fail ho jaye toh page reload kar dein
+          window.location.reload();
+        }
+      }, 2000); 
+
+    } else {
+      alert("Payment verification failed. Please contact support.");
+      setLoading(false);
+    }
+  } catch (err) { 
+    console.error("Verification Error:", err);
+    setLoading(false); 
+  }
+};
   useEffect(() => {
     gsap.to(leftCurtainRef.current, { x: "-100%", duration: 1.4, ease: "expo.inOut", delay: 0.5 });
     gsap.to(rightCurtainRef.current, { x: "100%", duration: 1.4, ease: "expo.inOut", delay: 0.5 });

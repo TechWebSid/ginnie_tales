@@ -6,7 +6,7 @@ import { FieldValue } from "firebase-admin/firestore"; // 2. Admin use FieldValu
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, storyId, userId, shipping, planType } = body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, storyId, userId, shipping, planType, amount } = body;
 
     // 1. Signature Verification
     const secret = process.env.RAZORPAY_KEY_SECRET;
@@ -54,6 +54,7 @@ export async function POST(req) {
       // UPGRADE: Update existing record
       const orderDoc = querySnapshot.docs[0];
       await orderDoc.ref.update({
+        amount: amount,
         planType: "hardcopy",
         shipping: shipping,
         status: "Sent for Printing",
@@ -67,6 +68,7 @@ export async function POST(req) {
         storyId: storyId || "unknown",
         storyTitle,
         coverImage,
+        amount: amount || 0,
         paymentId: razorpay_payment_id,
         orderId: razorpay_order_id,
         planType,
