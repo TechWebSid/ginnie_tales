@@ -226,62 +226,66 @@ const verifyAndStartMagic = async (rzpResponse, plan) => {
 };
 
   // Initial Genie Trigger (First 2 Pages)
-  const clientSubmit = async (e) => {
-    e.preventDefault();
-    if (!preview || !user) return;
+// Initial Genie Trigger (First 2 Pages ke liye 2 unique images)
+const clientSubmit = async (e) => {
+  e.preventDefault();
+  if (!preview || !user) return;
 
-    setLoading(true);
-    setError(null);
-    setProgress(0);
-    setIsCancelled(false);
+  setLoading(true);
+  setError(null);
+  setProgress(0);
+  setIsCancelled(false);
+  
+  const formData = new FormData(e.target);
+  const storyPrompt = formData.get("storyPrompt");
+
+  try {
+    setLoadingStage("🔮 Mixing Magic Dust...");
+    const textRes = await fetch("/api/genie", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageBase64: preview, storyPrompt, mode: "generateText" }),
+    });
+
+    const textData = await textRes.json();
+    const allPages = textData.pages; 
     
-    const formData = new FormData(e.target);
-    const storyPrompt = formData.get("storyPrompt");
+    // Initialize: Only first 2 images will be generated, rest locked
+    const finalImages = new Array(allPages.length).fill("https://placehold.co/600x800?text=Locked");
+    setOutput({ pages: allPages, images: finalImages, title: storyPrompt });
 
-    try {
-      setLoadingStage("🔮 Mixing Magic Dust...");
-      const textRes = await fetch("/api/genie", {
+    // Generate केवल पहली 2 images (index 0 और 1)
+    for (let i = 0; i < 2; i++) {
+      setLoadingStage(`✨ Creating Page ${i + 1}...`);
+      setProgress(i + 1);
+      const imgRes = await fetch("/api/genie", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: preview, storyPrompt, mode: "generateText" }),
+        body: JSON.stringify({ imageBase64: preview, pageText: allPages[i], mode: "generateImage" }),
       });
-
-      const textData = await textRes.json();
-      const allPages = textData.pages; 
-      const finalImages = new Array(allPages.length).fill("https://placehold.co/600x800?text=Locked");
-      setOutput({ pages: allPages, images: finalImages, title: storyPrompt });
-
-      for (let i = 0; i < 2; i++) {
-        setLoadingStage(`✨ Creating Page ${i + 1}...`);
-        setProgress(i + 1);
-        const imgRes = await fetch("/api/genie", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageBase64: preview, pageText: allPages[i], mode: "generateImage" }),
-        });
-        const imgData = await imgRes.json();
-        finalImages[i] = imgData.imageUrl;
-        setOutput(prev => ({ ...prev, images: [...finalImages] }));
-      }
-
-      const docRef = await addDoc(collection(db, "stories"), {
-        userId: user.uid,
-        pages: allPages,
-        images: finalImages,
-        status: "preview",
-        paid: false,
-        createdAt: serverTimestamp(),
-        coverImage: finalImages[0],
-        prompt: storyPrompt
-      });
-      setStoryId(docRef.id);
-
-    } catch (err) {
-      setError("The magic was interrupted.");
-    } finally {
-      setLoading(false);
+      const imgData = await imgRes.json();
+      finalImages[i] = imgData.imageUrl;
+      setOutput(prev => ({ ...prev, images: [...finalImages] }));
     }
-  };
+
+    const docRef = await addDoc(collection(db, "stories"), {
+      userId: user.uid,
+      pages: allPages,
+      images: finalImages,
+      status: "preview",
+      paid: false,
+      createdAt: serverTimestamp(),
+      coverImage: finalImages[0], // Cover = First page image
+      prompt: storyPrompt
+    });
+    setStoryId(docRef.id);
+
+  } catch (err) {
+    setError("The magic was interrupted.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     gsap.to(leftCurtainRef.current, { x: "-100%", duration: 1.4, ease: "expo.inOut", delay: 0.5 });

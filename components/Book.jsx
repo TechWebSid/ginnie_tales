@@ -110,7 +110,6 @@ export default function Book({
          ${pages.map((text, i) => `
   <div class="page">
     <div class="img-container">
-      {/* i + 1 isliye taaki PDF mein bhi Story Page 1 ki image images[1] ho */}
       <img src="${images[i + 1] || images[i] || images[0]}" />
     </div>
     <div class="text-container">
@@ -154,7 +153,7 @@ export default function Book({
     onClick={handleNext}
   >
     {/* Hamesha array ki pehli image (Cover) dikhayega */}
-    <img src={images[0]} className="absolute inset-0 w-full h-full object-cover" alt="Cover" />
+   <img src={images[0]} className="absolute inset-0 w-full h-full object-cover" alt="Cover" />
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
     <div className="absolute inset-0 flex flex-col items-center justify-end pb-10 px-6 text-center z-20">
         <h1 className="text-2xl md:text-3xl font-[1000] text-[#FFD166] italic uppercase leading-tight tracking-tight mb-2">A MAGICAL STORY INSIDE</h1>
@@ -166,15 +165,17 @@ export default function Book({
 )}
 
         {/* --- MAIN STORY VIEW --- */}
-      {view === "open" && (
+{view === "open" && (
   <motion.div key="open" 
-    initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+    initial={{ opacity: 0, y: 30 }} 
+    animate={{ opacity: 1, y: 0 }} 
+    exit={{ opacity: 0, scale: 0.95 }}
     className="w-full max-w-5xl bg-white rounded-[2.5rem] md:rounded-[4rem] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col lg:flex-row overflow-hidden border-[8px] md:border-[12px] border-white min-h-[550px] relative"
   >
     <div className="w-full lg:w-1/2 h-[300px] lg:h-[650px] bg-[#F1FAEE] relative overflow-hidden">
+        {/* Page 1 (pageIndex=0) aur Page 2 (pageIndex=1) ke liye images[pageIndex] use karo */}
         <img 
-          // pageIndex + 1 taaki images[1] se shuru ho
-          src={images[pageIndex + 1] || images[pageIndex] || images[0]} 
+          src={images[pageIndex] || images[0]} 
           className={`w-full h-full object-cover transition-all duration-700 ${isLockedPage || (isPaid && isImageLoading) ? 'blur-2xl grayscale brightness-50' : ''}`} 
           alt="Illustration" 
         />
