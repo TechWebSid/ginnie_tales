@@ -21,11 +21,16 @@ export default function Book({
   const isImageLoading = images[pageIndex]?.includes("Locked") || images[pageIndex]?.includes("placehold.co");
   const isLockedPage = pageIndex >= 2 && !isPaid;
 
-  useEffect(() => {
-    if (isPaid && view === "closed-front") {
-      setView("open");
-    }
-  }, [isPaid]);
+ useEffect(() => {
+  if (isPaid && view === "closed-front") {
+    setView("open");
+  }
+  // Agar payment false ho jaye (Reset ke waqt), toh book ko band kar do
+  if (!isPaid) {
+    setView("closed-front");
+    setPageIndex(0);
+  }
+}, [isPaid]);
 
   if (!pages || pages.length === 0) {
     return (

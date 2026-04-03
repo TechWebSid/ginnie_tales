@@ -286,16 +286,33 @@ export default function StoryGenerator() {
                    </div>
                 )}
 
-                <div className="flex w-full justify-start mb-6">
-                    <button onClick={() => { setOutput(null); setProgress(0); }} className="px-6 py-3 bg-white text-[#073B4C] border-2 border-[#073B4C] rounded-xl font-black flex items-center gap-2 shadow-[3px_3px_0px_#073B4C] uppercase text-xs">
-                        <ArrowLeft size={16}/> New Story
-                    </button>
-                </div>
-                
-                <Book 
-                  pages={output.pages} images={output.images} title={output.title}
-                  isPaid={isPaid} onPay={() => setShowCart(true)} isProcessing={loading}
-                />
+
+<div className="flex w-full justify-start mb-6">
+    <button 
+      onClick={() => { 
+        setOutput(null); 
+        setProgress(0); 
+        setIsPaid(false);     // <--- Ye add kiya (Very Important)
+        setStoryId(null);     // <--- Ye add kiya
+        setLoading(false); 
+      }} 
+      className="px-6 py-3 bg-white text-[#073B4C] border-2 border-[#073B4C] rounded-xl font-black flex items-center gap-2 shadow-[3px_3px_0px_#073B4C] uppercase text-xs"
+    >
+        <ArrowLeft size={16}/> New Story
+    </button>
+</div>
+
+
+<Book 
+  key={storyId || 'initial'} 
+  pages={output.pages} 
+  images={output.images} 
+  title={output.title}
+  isPaid={isPaid} 
+  onPay={() => setShowCart(true)} 
+  isProcessing={loading}
+/>
+              
             </motion.div>
           )}
         </AnimatePresence>
