@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth"; // Adjust the path based on your folder structure
 import StoryGenerator from '@/components/StoryGenerator';
 import React from 'react';
+import MagicalCart from "@/components/story-generator/MagicalCart";
 
 function Page() {
   const { user, loading } = useAuth();
@@ -30,6 +31,7 @@ function Page() {
   return user ? (
     <div>
       <StoryGenerator />
+  
     </div>
   ) : null;
 }

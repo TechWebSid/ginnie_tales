@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, XCircle, Star } from "lucide-react";
+import { ArrowLeft, XCircle, Star, Sparkles, BookOpen, AlertCircle, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 
@@ -19,7 +19,6 @@ export default function StoryGenerator() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // --- States ---
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState(null); 
@@ -28,18 +27,12 @@ export default function StoryGenerator() {
   const [storyId, setStoryId] = useState(null);
   const [isPaid, setIsPaid] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
+  const [generationStopped, setGenerationStopped] = useState(false); // New State
 
-  // --- Story Configuration Persistence ---
-  // Ye states hum isliye rakh rahe hain taaki Payment ke baad AI ko pata ho ki kaunsa style use karna hai
   const [storyConfig, setStoryConfig] = useState({
-    kidName: "",
-    ageGroup: "",
-    theme: "",
-    subject: "",
-    style: "Ghibli"
+    kidName: "", ageGroup: "", theme: "", subject: "", style: "Ghibli"
   });
   
-  // Payment States
   const [showCart, setShowCart] = useState(false);
   const [showShippingForm, setShowShippingForm] = useState(false);
   const [shippingDetails, setShippingDetails] = useState({
@@ -50,7 +43,6 @@ export default function StoryGenerator() {
   const rightCurtainRef = useRef(null);
   const abortControllerRef = useRef(null);
 
-  // --- Handlers ---
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -61,18 +53,21 @@ export default function StoryGenerator() {
   };
 
   const handleCancel = () => {
-    if (abortControllerRef.current) abortControllerRef.current.abort();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     setIsCancelled(true);
+    setGenerationStopped(true); // Show the "Stopped" UI
     setLoading(false);
   };
 
-  // --- STEP 1: Initial Magic (Text + First 2 Pages) ---
   const clientSubmit = async (e) => {
     e.preventDefault();
     if (!preview || !user) return;
 
     setLoading(true);
     setIsCancelled(false);
+    setGenerationStopped(false);
     
     const formData = new FormData(e.target);
     const config = {
@@ -84,7 +79,7 @@ export default function StoryGenerator() {
       imageBase64: preview
     };
 
-    setStoryConfig(config); // Save for later (after payment)
+    setStoryConfig(config);
 
     try {
       setLoadingStage("🔮 Mixing Magic Dust...");
@@ -100,7 +95,6 @@ export default function StoryGenerator() {
       
       setOutput({ pages: allPages, images: finalImages, title: config.subject });
 
-      // Generate first 2 free preview pages
       for (let i = 0; i < 2; i++) {
         setLoadingStage(`✨ Creating Page ${i + 1}...`);
         setProgress(i + 1);
@@ -134,17 +128,15 @@ export default function StoryGenerator() {
     }
   };
 
-  // --- STEP 2: Finish Magic (Remaining Pages after Payment) ---
   const generateRemainingPages = async () => {
     if (!output || !storyId) return;
     setLoading(true);
     setIsCancelled(false);
+    setGenerationStopped(false);
     const updatedImages = [...output.images];
 
     try {
-      // Loop starts from index 2 (Page 3 & 4)
       for (let i = 2; i < output.pages.length; i++) {
-        if (isCancelled) break;
         setLoadingStage(`🎨 Painting Page ${i + 1}...`);
         setProgress(i + 1);
         
@@ -154,7 +146,7 @@ export default function StoryGenerator() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
-            ...storyConfig, // Name, Style, Preview image sab yahan se milega
+            ...storyConfig,
             pageText: output.pages[i], 
             mode: "generateImage" 
           }),
@@ -164,27 +156,29 @@ export default function StoryGenerator() {
         const imgData = await imgRes.json();
         updatedImages[i] = imgData.imageUrl || "https://placehold.co/600x800/png?text=Error";
         
-        // Update local state to show image instantly
         setOutput(prev => ({ ...prev, images: [...updatedImages] }));
       }
 
-      if (!isCancelled) {
-        await updateDoc(doc(db, "stories", storyId), {
-          images: updatedImages,
-          status: "completed",
-          paid: true,
-          lastUpdated: serverTimestamp()
-        });
-        setLoadingStage("✨ Tale Completed!");
-        setTimeout(() => setLoading(false), 2000);
-      }
+      await updateDoc(doc(db, "stories", storyId), {
+        images: updatedImages,
+        status: "completed",
+        paid: true,
+        lastUpdated: serverTimestamp()
+      });
+      setLoadingStage("✨ Tale Completed!");
+      setTimeout(() => setLoading(false), 2000);
+
     } catch (err) {
-      console.error("Remaining pages error:", err);
-      setLoading(false);
+      if (err.name === 'AbortError') {
+        console.log("Fetch aborted by user");
+        // We don't need to do much here as handleCancel already set the states
+      } else {
+        console.error("Remaining pages error:", err);
+      }
     }
   };
 
-  // --- Razorpay / Payment Logic ---
+  // Payment Logic (Razorpay)
   const handlePlanSelection = (plan) => {
     if (plan === "hardcopy") setShowShippingForm(true);
     else startPayment("ebook");
@@ -252,20 +246,20 @@ export default function StoryGenerator() {
   }, []);
 
   return (
-    <div className="relative min-h-screen w-full bg-[#FEF9EF] overflow-x-hidden font-sans pb-10">
+    <div className="relative min-h-screen w-full bg-[#FEF9EF] overflow-x-hidden font-sans">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
       {/* --- Cinematic Curtains --- */}
       <div className="fixed inset-0 z-[100] flex pointer-events-none">
-        <div ref={leftCurtainRef} className="w-1/2 h-full bg-[#FF4D6D] border-r-4 border-[#C9184A] flex items-center justify-end pr-10">
-            <span className="text-white/20 font-black text-6xl md:text-9xl uppercase rotate-90 tracking-widest">MAGIC</span>
+        <div ref={leftCurtainRef} className="w-1/2 h-full bg-[#FF4D6D] border-r-[6px] border-[#C9184A] flex items-center justify-end pr-6 md:pr-10">
+            <span className="text-white/20 font-black text-6xl md:text-9xl uppercase rotate-90 tracking-widest select-none">MAGIC</span>
         </div>
-        <div ref={rightCurtainRef} className="w-1/2 h-full bg-[#FF4D6D] border-l-4 border-[#C9184A] flex items-center justify-start pl-10">
-            <span className="text-white/20 font-black text-6xl md:text-9xl uppercase -rotate-90 tracking-widest">TALES</span>
+        <div ref={rightCurtainRef} className="w-1/2 h-full bg-[#FF4D6D] border-l-[6px] border-[#C9184A] flex items-center justify-start pl-6 md:pl-10">
+            <span className="text-white/20 font-black text-6xl md:text-9xl uppercase -rotate-90 tracking-widest select-none">TALES</span>
         </div>
       </div>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-4">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <AnimatePresence mode="wait">
           {!output || (loading && progress <= 2) ? (
             <GenerationForm 
@@ -273,46 +267,60 @@ export default function StoryGenerator() {
               preview={preview} loading={loading} loadingStage={loadingStage} progress={progress}
             />
           ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center pt-10">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center pt-8 md:pt-12">
+                
+                {/* Loader Overlay */}
                 {loading && (
-                   <div className="fixed inset-0 z-[200] bg-[#073B4C]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-white">
-                      <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="mb-6"><Star className="w-16 h-16 text-[#FFD166] fill-[#FFD166]" /></motion.div>
-                      <h3 className="text-4xl md:text-6xl font-black mb-2 text-[#06D6A0]">Painting Tale...</h3>
-                      <p className="text-lg font-black text-[#FFD166] mb-8 uppercase">{loadingStage}</p>
-                      <div className="w-full max-w-md bg-white/20 h-6 rounded-full border-4 border-white mb-10 overflow-hidden">
-                        <motion.div className="h-full bg-gradient-to-r from-[#EF476F] to-[#FFD166]" animate={{ width: `${(progress / output.pages.length) * 100}%` }} />
+                   <div className="fixed inset-0 z-[200] bg-[#073B4C]/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-white">
+                      <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 3 }} className="mb-8 p-6 bg-[#FFD166] rounded-full">
+                        <Sparkles className="w-16 h-16 text-[#073B4C] fill-[#073B4C]" />
+                      </motion.div>
+                      <h3 className="text-4xl font-black mb-4 text-[#06D6A0]">PAINTING TALE...</h3>
+                      <p className="text-xl font-bold text-[#FFD166] mb-10 uppercase">{loadingStage}</p>
+                      
+                      <div className="w-full max-w-xl bg-white/10 h-8 rounded-2xl border-[3px] border-white/30 mb-12 overflow-hidden p-1">
+                        <motion.div className="h-full bg-gradient-to-r from-[#EF476F] to-[#FFD166] rounded-xl" animate={{ width: `${(progress / output.pages.length) * 100}%` }} />
                       </div>
-                      <button onClick={handleCancel} className="flex items-center gap-2 px-8 py-4 bg-[#EF476F] border-2 border-white rounded-2xl font-black uppercase"><XCircle size={20} /> Stop</button>
+                      
+                      <button onClick={handleCancel} className="flex items-center gap-3 px-10 py-5 bg-[#EF476F] border-b-4 border-[#C9184A] rounded-2xl font-black uppercase text-lg">
+                        <XCircle size={24} /> Stop Magic
+                      </button>
                    </div>
                 )}
 
+                {/* Generation Stopped Card */}
+                {generationStopped && (
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white p-8 md:p-12 rounded-[2.5rem] border-[6px] border-[#073B4C] shadow-[12px_12px_0px_#EF476F] max-w-md w-full text-center">
+                      <div className="w-20 h-20 bg-[#EF476F]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <AlertCircle size={48} className="text-[#EF476F]" />
+                      </div>
+                      <h2 className="text-3xl font-[1000] text-[#073B4C] uppercase mb-4 leading-none">Magic Paused!</h2>
+                      <p className="text-slate-500 font-bold mb-8">You stopped the generation. Your story is saved, but some pages are still locked.</p>
+                      <div className="flex flex-col gap-3">
+                        <button onClick={() => { setGenerationStopped(false); generateRemainingPages(); }} className="w-full py-4 bg-[#06D6A0] text-white rounded-2xl font-black uppercase shadow-[0_4px_0px_#048a68] active:translate-y-1 active:shadow-none">
+                           Resume Painting
+                        </button>
+                        <button onClick={() => setGenerationStopped(false)} className="w-full py-4 text-[#073B4C] font-black uppercase">
+                           View Preview
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
 
-<div className="flex w-full justify-start mb-6">
-    <button 
-      onClick={() => { 
-        setOutput(null); 
-        setProgress(0); 
-        setIsPaid(false);     // <--- Ye add kiya (Very Important)
-        setStoryId(null);     // <--- Ye add kiya
-        setLoading(false); 
-      }} 
-      className="px-6 py-3 bg-white text-[#073B4C] border-2 border-[#073B4C] rounded-xl font-black flex items-center gap-2 shadow-[3px_3px_0px_#073B4C] uppercase text-xs"
-    >
-        <ArrowLeft size={16}/> New Story
-    </button>
-</div>
+                <div className="flex w-full justify-between items-center mb-8 px-2">
+                    <button onClick={() => { setOutput(null); setProgress(0); setIsPaid(false); setStoryId(null); setGenerationStopped(false); }} className="px-5 py-3 bg-white text-[#073B4C] border-[3px] border-[#073B4C] rounded-2xl font-black flex items-center gap-2 shadow-[6px_6px_0px_#073B4C] uppercase text-sm">
+                        <ArrowLeft size={18} /> New Story
+                    </button>
+                </div>
 
-
-<Book 
-  key={storyId || 'initial'} 
-  pages={output.pages} 
-  images={output.images} 
-  title={output.title}
-  isPaid={isPaid} 
-  onPay={() => setShowCart(true)} 
-  isProcessing={loading}
-/>
-              
+                <div className="w-full relative px-2">
+                  <Book 
+                    pages={output.pages} images={output.images} title={output.title}
+                    isPaid={isPaid} onPay={() => setShowCart(true)} isProcessing={loading}
+                  />
+                </div>
             </motion.div>
           )}
         </AnimatePresence>
