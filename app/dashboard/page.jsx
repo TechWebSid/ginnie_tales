@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import RoleGuard from "@/components/auth/RoleGuard";
+import VerifyEmailGuard from "@/components/auth/VerifyEmailGuard";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -43,6 +44,8 @@ export default function Dashboard() {
 
   return (
     <RoleGuard allowedRoles={["explorer"]}>
+
+      <VerifyEmailGuard>
     <div className="min-h-screen bg-[#F8FAFF] pb-20">
     
 
@@ -104,6 +107,7 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+    </VerifyEmailGuard>
       </RoleGuard>
   );
 }

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 // Firebase tools
 import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
 export default function SignUp() {
@@ -20,40 +20,67 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
 
   // 2. Account Creation Logic
-  const handleSignUp = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+// Inside SignUp component, update handleSignUp:
 
-    try {
-      // Create the user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+const handleSignUp = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-      // Set their Display Name in Auth
-      await updateProfile(user, { displayName: explorerName });
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-      // Create a "User Profile" in Firestore to store extra magic data
-      await setDoc(doc(db, "users", user.uid), {
-        explorerName: explorerName,
-        email: email,
-        createdAt: new Date().toISOString(),
-        role: "explorer",
-        stars: 0 // Initial points/stars
-      });
+    // 1. Send verification email
+    await sendEmailVerification(user);
+    
+    // 2. Update Auth Profile
+    await updateProfile(user, { displayName: explorerName });
 
-      router.push("/dashboard");
-    } catch (err) {
-      if (err.code === "auth/email-already-in-use") {
-        setError("This email is already in the club! Try logging in.");
-      } else {
-        setError("The magic failed! Try a stronger secret code.");
-      }
-      console.error(err);
-    } finally {
-      setLoading(false);
+    // 3. Create Firestore Document
+    await setDoc(doc(db, "users", user.uid), {
+      explorerName: explorerName,
+      email: email,
+      createdAt: new Date().toISOString(),
+      role: "explorer",
+      stars: 0
+    });
+
+    // 4. Redirect to dashboard
+    router.push("/dashboard");
+    
+  } catch (err) {
+    // 🛑 STOP the loading state immediately
+    setLoading(false);
+
+    // 🛡️ Safe Error Access
+    const errorCode = err?.code || "unknown";
+
+    // ✨ Adventure-Themed Error Mapping
+    switch (errorCode) {
+      case "auth/email-already-in-use":
+        setError("You're already in the club! Try logging in instead. 👋");
+        break;
+      case "auth/weak-password":
+        setError("That secret code is too easy for dragons to guess! 🐉");
+        break;
+      case "auth/invalid-email":
+        setError("That doesn't look like a real magic scroll address! 📜");
+        break;
+      case "auth/operation-not-allowed":
+        setError("The gates are currently closed. Contact the wizard! 🧙‍♂️");
+        break;
+      case "auth/network-request-failed":
+        setError("The magic connection is weak. Check your Wi-Fi! 📶");
+        break;
+      default:
+        setError("The enrollment failed! Please try your magic again. ✨");
     }
-  };
+
+    // Use warn instead of error to avoid Next.js dev overlay crash
+    console.warn("Signup logic caught an error:", errorCode);
+  }
+};
 
   // 3. Social Logic
   const handleGoogleSignUp = async () => {

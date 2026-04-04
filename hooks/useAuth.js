@@ -10,11 +10,14 @@ export function useAuth() {
   const [role, setRole] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setIsEmailVerified(currentUser.emailVerified);
         try {
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           if (userDoc.exists()) {
@@ -39,5 +42,5 @@ export function useAuth() {
     return () => unsubscribe();
   }, []);
 
-  return { user, role, userData, loading };
+return { user, role, userData, loading, isEmailVerified }; 
 }

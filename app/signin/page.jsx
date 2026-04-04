@@ -61,20 +61,38 @@ export default function SignIn() {
   };
 
   // Email/Password Login Logic
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+// Inside SignIn component, update handleLogin:
 
-    try {
-      const { user } = await signInWithEmailAndPassword(auth, email, password);
-      await redirectUserByRole(user);
-    } catch (err) {
-      setError("Magic code or email is incorrect! 🧙‍♂️");
-      setLoading(false);
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError(""); // Reset error at start
+
+  try {
+    const { user } = await signInWithEmailAndPassword(auth, email, password);
+    await redirectUserByRole(user);
+  } catch (err) {
+    setLoading(false);
+    
+    // 🧙‍♂️ Magic Error Mapping
+    switch (err.code) {
+      case "auth/invalid-credential":
+        setError("That magic code or email doesn't match our records! 🔐");
+        break;
+      case "auth/user-not-found":
+        setError("We couldn't find an explorer with that email! 🔎");
+        break;
+      case "auth/wrong-password":
+        setError("Oops! That's the wrong secret code for this vault. 🗝️");
+        break;
+      case "auth/too-many-requests":
+        setError("Too many attempts! The genie is tired. Try again later. 🧞‍♂️");
+        break;
+      default:
+        setError("A dark cloud blocked the magic. Try again! ☁️");
     }
-  };
-
+  }
+};
   // Google Login Logic
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
