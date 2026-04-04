@@ -33,7 +33,7 @@ export default function StoryGenerator() {
   const [showCart, setShowCart] = useState(false);
   const [showShippingForm, setShowShippingForm] = useState(false);
   const [shippingDetails, setShippingDetails] = useState({
-    phone: "", address: "", pincode: "", city: ""
+   name: "", phone: "", address: "", pincode: "", city: ""
   });
 
   const leftCurtainRef = useRef(null);
@@ -199,11 +199,10 @@ export default function StoryGenerator() {
     } catch (err) { setLoading(false); }
   };
 
- const verifyAndStartMagic = async (rzpResponse, plan) => {
+const verifyAndStartMagic = async (rzpResponse, plan) => {
   setLoading(true);
   setLoadingStage("🛡️ Verifying Payment...");
   
-  // FIX 1: Define priceInPaise inside this function
   const priceInPaise = plan === "hardcopy" ? 149900 : 49900;
 
   try {
@@ -215,7 +214,7 @@ export default function StoryGenerator() {
         storyId, 
         planType: plan, 
         userId: user?.uid, 
-        amount: priceInPaise, // Now this will work
+        amount: priceInPaise,
         shipping: plan === "hardcopy" ? shippingDetails : null 
       }),
     });
@@ -223,25 +222,33 @@ export default function StoryGenerator() {
     const data = await res.json();
     
     if (data.success) {
+      // IMPORTANT: Update Firestore immediately with shipping details & plan type
+      // This ensures the Ops Dashboard sees the order even if generation is slow.
+      const storyRef = doc(db, "stories", storyId);
+      await updateDoc(storyRef, {
+        paid: true,
+        planType: plan,
+        status: plan === "hardcopy" ? "Processing" : "Completed",
+        shipping: plan === "hardcopy" ? shippingDetails : null, // SAVES DATA TO FIRESTORE
+        paymentId: rzpResponse.razorpay_payment_id,
+        lastUpdated: serverTimestamp()
+      });
+
       setLoadingStage("✨ Payment Verified! Starting Magic...");
       setIsPaid(true);
       setShowCart(false);
 
-      // FIX 2: Thoda intezaar karein taaki backend update confirm ho jaye
-      // Phir generation call karein
       setTimeout(async () => {
         try {
           await generateRemainingPages(); 
-          console.log("Generation started successfully");
         } catch (genErr) {
           console.error("Generation Trigger Error:", genErr);
-          // Agar generation fail ho jaye toh page reload kar dein
           window.location.reload();
         }
       }, 2000); 
 
     } else {
-      alert("Payment verification failed. Please contact support.");
+      alert("Payment verification failed.");
       setLoading(false);
     }
   } catch (err) { 

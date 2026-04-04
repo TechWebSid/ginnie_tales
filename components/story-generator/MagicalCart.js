@@ -87,50 +87,60 @@ export default function MagicalCart({
                   <p className="text-slate-400 font-bold text-sm">Where should the postman bring your tale?</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#073B4C] uppercase ml-2 opacity-50">Phone Number</label>
-                    <input 
-                      type="tel" 
-                      placeholder="e.g. 9876543210" 
-                      className="w-full p-4 rounded-2xl bg-[#F8F9FA] border-2 border-[#F1FAEE] focus:border-[#06D6A0] outline-none font-bold text-slate-700 transition-all"
-                      onChange={(e) => setShippingDetails({...shippingDetails, phone: e.target.value})} 
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#073B4C] uppercase ml-2 opacity-50">Pincode</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 110001" 
-                      className="w-full p-4 rounded-2xl bg-[#F8F9FA] border-2 border-[#F1FAEE] focus:border-[#06D6A0] outline-none font-bold text-slate-700 transition-all"
-                      onChange={(e) => setShippingDetails({...shippingDetails, pincode: e.target.value})} 
-                    />
-                  </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-[10px] font-black text-[#073B4C] uppercase ml-2 opacity-50">Full Address</label>
-                    <textarea 
-                      placeholder="House No, Street, Landmark, City..." 
-                      className="w-full p-4 rounded-2xl bg-[#F8F9FA] border-2 border-[#F1FAEE] focus:border-[#06D6A0] outline-none font-bold text-slate-700 min-h-[120px] transition-all"
-                      onChange={(e) => setShippingDetails({...shippingDetails, address: e.target.value})} 
-                    />
-                  </div>
-                </div>
+             {/* Replace the Shipping Form section in MagicalCart.jsx */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {/* NEW NAME FIELD */}
+  <div className="space-y-1 md:col-span-2">
+    <label className="text-[10px] font-black text-[#073B4C] uppercase ml-2 opacity-50">Recipient Name</label>
+    <input 
+      type="text" 
+      placeholder="Full name of the person receiving the book" 
+      className="w-full p-4 rounded-2xl bg-[#F8F9FA] border-2 border-[#F1FAEE] focus:border-[#06D6A0] outline-none font-bold text-slate-700 transition-all"
+      onChange={(e) => setShippingDetails({...shippingDetails, name: e.target.value})} 
+    />
+  </div>
 
-                <div className="flex flex-col md:flex-row gap-4 pt-4">
-                  <button 
-                    onClick={() => setShowShippingForm(false)} 
-                    className="flex-1 font-black text-[#073B4C] py-4 md:py-0 hover:text-[#EF476F] transition-colors uppercase text-sm flex items-center justify-center gap-2"
-                  >
-                    <ChevronLeft size={20} /> Go Back
-                  </button>
-                  <button 
-                    disabled={!shippingDetails.phone || !shippingDetails.address}
-                    onClick={() => startPayment('hardcopy')} 
-                    className="flex-[2] py-5 bg-[#06D6A0] hover:bg-[#05b88a] text-white rounded-[1.5rem] font-[1000] uppercase text-lg shadow-[0_6px_0px_#048a68] active:translate-y-1 active:shadow-none transition-all disabled:grayscale disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none"
-                  >
-                    Proceed to Pay ₹1499
-                  </button>
-                </div>
+  <div className="space-y-1">
+    <label className="text-[10px] font-black text-[#073B4C] uppercase ml-2 opacity-50">Phone Number</label>
+    <input 
+      type="tel" 
+      placeholder="10-digit mobile number" 
+      className="w-full p-4 rounded-2xl bg-[#F8F9FA] border-2 border-[#F1FAEE] focus:border-[#06D6A0] outline-none font-bold text-slate-700 transition-all"
+      onChange={(e) => setShippingDetails({...shippingDetails, phone: e.target.value})} 
+    />
+  </div>
+
+  <div className="space-y-1">
+    <label className="text-[10px] font-black text-[#073B4C] uppercase ml-2 opacity-50">Pincode</label>
+    <input 
+      type="text" 
+      placeholder="6-digit Pincode" 
+      className="w-full p-4 rounded-2xl bg-[#F8F9FA] border-2 border-[#F1FAEE] focus:border-[#06D6A0] outline-none font-bold text-slate-700 transition-all"
+      onChange={(e) => setShippingDetails({...shippingDetails, pincode: e.target.value})} 
+    />
+  </div>
+
+  <div className="space-y-1 md:col-span-2">
+    <label className="text-[10px] font-black text-[#073B4C] uppercase ml-2 opacity-50">Full Address</label>
+    <textarea 
+      placeholder="House No, Building, Street, Landmark, City, State..." 
+      className="w-full p-4 rounded-2xl bg-[#F8F9FA] border-2 border-[#F1FAEE] focus:border-[#06D6A0] outline-none font-bold text-slate-700 min-h-[100px] transition-all"
+      onChange={(e) => setShippingDetails({...shippingDetails, address: e.target.value})} 
+    />
+  </div>
+</div>
+
+{/* Button Section */}
+<div className="flex flex-col md:flex-row gap-4 pt-4">
+  <button onClick={() => setShowShippingForm(false)} className="..."> <ChevronLeft size={20} /> Go Back </button>
+  <button 
+    disabled={!shippingDetails.phone || !shippingDetails.address || !shippingDetails.name || !shippingDetails.pincode}
+    onClick={() => startPayment('hardcopy')} 
+    className="..."
+  >
+    Proceed to Pay ₹1499
+  </button>
+</div>
               </div>
             )}
           </motion.div>
