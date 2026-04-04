@@ -32,8 +32,10 @@ const handleLogout = async () => {
 
   const navLinks = [
     { name: "Magic Lab", href: "/story" },
-    { name: "Safety", href: "/#safety" },
-    { name: "Themes", href: "/#themes" },
+    { name: "How to create", href: "/howtocreate" },
+    { name: "Themes", href: "/themes" },
+      
+
   ];
 
   return (
