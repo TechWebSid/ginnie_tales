@@ -1,7 +1,6 @@
 import Replicate from "replicate";
 import { v2 as cloudinary } from 'cloudinary';
 
-// --- CLOUDINARY CONFIGURATION ---
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -13,24 +12,32 @@ export const dynamic = "force-dynamic";
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// ... existing Cloudinary & Replicate imports ...
-
 export async function POST(req) {
   try {
-    if (!process.env.REPLICATE_API_KEY) return Response.json({ success: false, error: "Missing API key" });
+    console.log("--- STARTING POST REQUEST ---");
+    
+    if (!process.env.REPLICATE_API_KEY) {
+      console.error("Error: Missing REPLICATE_API_KEY");
+      return Response.json({ success: false, error: "Missing API key" });
+    }
 
     const body = await req.json();
-    // Destructuring new fields
     const { 
       imageBase64, mode, pageText, 
       kidName, ageGroup, theme, subject, style 
     } = body;
+
+    console.log(`Mode detected: ${mode}`);
+    console.log(`Context: Kid Name: ${kidName}, Age: ${ageGroup}, Style: ${style}`);
 
     const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY });
     const imageDataUrl = imageBase64?.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`;
 
     // --- MODE: TEXT GENERATION (Gemini) ---
     if (mode === "generateText") {
+      console.log("Starting Step: Story Writing (Gemini)...");
+      await delay(500); // Rate limit protection
+
       const prompt = `
         You are an elite children's book author. Write a 4-page story for a ${ageGroup} old child named "${kidName}".
         THEME: ${theme}
@@ -52,19 +59,28 @@ export async function POST(req) {
       `;
 
       const output = await replicate.run("google/gemini-2.5-flash", { input: { images: [imageDataUrl], prompt } });
+      console.log("Gemini raw output received.");
+
       const clean = typeof output === "string" ? output : output.join("");
       const match = clean.match(/\{[\s\S]*\}/);
       
       if (match) {
         const parsed = JSON.parse(match[0]);
+        console.log("Story JSON successfully parsed. Pages generated: ", parsed.pages.length);
         return Response.json({ success: true, pages: parsed.pages });
       }
+      
+      console.error("JSON Parsing Error: Could not find JSON block in Gemini output.");
       throw new Error("Failed to parse story JSON");
     }
 
     // --- MODE: IMAGE GENERATION ---
     if (mode === "generateImage") {
-      // Style logic based on user selection
+      console.log("Starting Step: Image Generation (Flux PuLID)...");
+      console.log(`Scene Description: ${pageText}`);
+      
+      await delay(800); // Rate limit protection
+
       const stylePrompts = {
         "Ghibli": "Studio Ghibli style, hand-drawn aesthetic, lush backgrounds, Hayao Miyazaki inspired, vibrant yet soft colors",
         "watercolor": "Soft watercolor painting, dreamy textures, artistic brush strokes, gentle pastel tones, whimsical",
@@ -81,14 +97,15 @@ export async function POST(req) {
             prompt: `${selectedStyle} children's book illustration. SCENE: ${pageText}. Character is a child named ${kidName}. Ensure character consistency with the reference photo. 8k, whimsical atmosphere, high quality.`,
             main_face_image: imageDataUrl,
             num_outputs: 1,
-            guidance_scale: 3.8,
-            num_inference_steps: 28,
+            guidance_scale: 3.5,
+            num_inference_steps: 25,
             negative_prompt: "realistic, 3d render, photograph, distorted, text, watermark, blurry face",
           },
         }
       );
 
-      // ... existing Cloudinary upload logic remains exactly the same ...
+      console.log("Replicate image generation complete.");
+
       let tempUrl = "";
       if (Array.isArray(output) && output.length > 0) {
         const img = output[0];
@@ -96,20 +113,32 @@ export async function POST(req) {
         tempUrl = String(rawUrl).trim(); 
       }
 
-      let permanentUrl = "";
+      console.log(`Temporary Image URL: ${tempUrl}`);
+
+      let permanentUrl = tempUrl;
       if (tempUrl) {
         try {
+          console.log("Starting Step: Cloudinary Upload...");
           const uploadRes = await cloudinary.uploader.upload(tempUrl, {
             folder: "ginnie_tales_library",
-            transformation: [{ quality: "auto", fetch_format: "auto" }]
+            overwrite: true,
+            resource_type: "image",
+            transformation: [
+              { width: 800, crop: "limit" }, 
+              { quality: "60", fetch_format: "auto" }
+            ]
           });
           permanentUrl = uploadRes.secure_url;
-        } catch (e) { permanentUrl = tempUrl; }
+          console.log("Cloudinary upload successful. Permanent URL:", permanentUrl);
+        } catch (e) { 
+          console.error("Cloudinary Upload Failed, falling back to temporary URL:", e.message);
+        }
       }
 
       return Response.json({ success: !!permanentUrl, imageUrl: permanentUrl });
     }
   } catch (error) {
+    console.error("CRITICAL ERROR in POST handler:", error.message);
     return Response.json({ success: false, error: error.message });
   }
 }
