@@ -235,10 +235,13 @@ const startUpgradePayment = async () => {
                       </button>
                     )}
 
-                    <div className="text-center">
-                      <span className="text-2xl font-[1000] text-[#073B4C]">₹{order.amount / 100}</span>
-                      {order.planType === "ebook" && <p className="text-[10px] font-bold text-[#118AB2]">DIGITAL ONLY</p>}
-                    </div>
+                   <div className="text-center">
+    {/* ✅ FIX: Added fallback to 0 and check if amount exists */}
+    <span className="text-2xl font-[1000] text-[#073B4C]">
+      ₹{order.amount ? (order.amount / 100) : (order.planType === "hardcopy" ? 1499 : 499)}
+    </span>
+    {order.planType === "ebook" && <p className="text-[10px] font-bold text-[#118AB2]">DIGITAL ONLY</p>}
+  </div>
                   </div>
                 </div>
 
