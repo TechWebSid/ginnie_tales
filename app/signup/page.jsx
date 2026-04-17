@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 // Firebase tools
 import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, sendEmailVerification, signInWithPopup } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
 export default function SignUp() {
@@ -20,29 +20,31 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
 
   // 2. Account Creation Logic
-  const handleSignUp = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+const handleSignUp = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-    try {
-      // Create the user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-      // Set their Display Name in Auth
-      await updateProfile(user, { displayName: explorerName });
+    // 1. Send Verification Email immediately
+    await sendEmailVerification(user);
 
-      // Create a "User Profile" in Firestore to store extra magic data
-      await setDoc(doc(db, "users", user.uid), {
-        explorerName: explorerName,
-        email: email,
-        createdAt: new Date().toISOString(),
-        role: "explorer",
-        stars: 0 // Initial points/stars
-      });
+    await updateProfile(user, { displayName: explorerName });
 
-      router.push("/dashboard");
+    await setDoc(doc(db, "users", user.uid), {
+      explorerName: explorerName,
+      email: email,
+      createdAt: new Date().toISOString(),
+      role: "explorer",
+      stars: 0,
+      emailVerified: false // Track status
+    });
+
+    // 2. Redirect to verification waiting room
+    router.push("/verify-email");
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
         setError("This email is already in the club! Try logging in.");
