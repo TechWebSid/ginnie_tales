@@ -76,74 +76,96 @@ export default function Book({
     setView("closed-front");
   };
 
-  const downloadPDF = async () => {
-    try {
-      const frontCoverImg = images[0] || "https://placehold.co/600x800?text=My+Story";
-      const htmlContent = `
-        <html>
-          <head>
-            <style>
-              @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&family=Inter:ital,wght@0,900;1,900&display=swap');
-              body { margin: 0; padding: 0; background: #FEF9EF; font-family: 'Inter', sans-serif; color: #1A365D; }
-              .page { width: 297mm; height: 210mm; display: flex; page-break-after: always; border: 15px solid white; box-sizing: border-box; position: relative; overflow: hidden; }
-              .front-cover { background: #000; justify-content: flex-end; align-items: center; }
-              .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
-              .vignette { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 30%, transparent 50%); z-index: 2; }
-              .cover-content { position: relative; z-index: 10; padding-bottom: 30px; text-align: center; width: 100%; }
-              .generic-title { font-size: 45px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0 0 10px 0; text-transform: uppercase; text-shadow: 0 5px 15px rgba(0,0,0,0.8); }
-              .crafted-by { font-size: 18px; font-weight: 900; font-style: italic; color: #06D6A0; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
-              .order-link { font-size: 12px; color: white; opacity: 0.8; letter-spacing: 4px; }
-              .img-container { width: 50%; height: 100%; border-right: 10px solid white; }
-              .img-container img { width: 100%; height: 100%; object-fit: cover; }
-              .text-container { width: 50%; padding: 60px; background: #FFFCF9; display: flex; align-items: center; }
-              .story-text { font-size: 38px; line-height: 1.3; font-weight: 800; letter-spacing: -1px; margin: 0; }
-              .story-text::first-letter { color: #EF476F; font-family: 'Plus Jakarta Sans', sans-serif; float: left; font-size: 110px; line-height: 0.8; padding-right: 15px; font-weight: 900; }
-              .back-cover { background: #480CA8; color: white; border: none; justify-content: center; align-items: center; }
-              .back-inner { width: 90%; height: 90%; border: 8px double rgba(255,255,255,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-            </style>
-          </head>
-          <body>
-            <div class="page front-cover">
-              <img src="${frontCoverImg}" class="hero-bg" />
-              <div class="vignette"></div>
-              <div class="cover-content">
-                <h1 class="generic-title">A MAGICAL STORY INSIDE</h1>
-                <div class="crafted-by">Crafted by GinnieTales ✨</div>
-                <div class="order-link">ORDER YOUR STORYBOOK AT GINNIETALES.COM</div>
+const downloadPDF = async () => {
+  try {
+    const frontCoverImg = images[0] || "https://placehold.co/600x800?text=My+Story";
+    const htmlContent = `
+      <html>
+        <head>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&family=Inter:ital,wght@0,900;1,900&display=swap');
+            body { margin: 0; padding: 0; background: #FEF9EF; font-family: 'Inter', sans-serif; color: #1A365D; }
+            .page { width: 297mm; height: 210mm; display: flex; page-break-after: always; border: 15px solid white; box-sizing: border-box; position: relative; overflow: hidden; }
+            .front-cover { background: #000; justify-content: flex-end; align-items: center; }
+            .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+            .vignette { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 30%, transparent 50%); z-index: 2; }
+            .cover-content { position: relative; z-index: 10; padding-bottom: 30px; text-align: center; width: 100%; }
+            .generic-title { font-size: 45px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0 0 10px 0; text-transform: uppercase; text-shadow: 0 5px 15px rgba(0,0,0,0.8); }
+            .crafted-by { font-size: 18px; font-weight: 900; font-style: italic; color: #06D6A0; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+            .order-link { font-size: 12px; color: white; opacity: 0.8; letter-spacing: 4px; }
+            .img-container { width: 50%; height: 100%; border-right: 10px solid white; }
+            .img-container img { width: 100%; height: 100%; object-fit: cover; }
+            .text-container { width: 50%; padding: 60px; background: #FFFCF9; display: flex; align-items: center; }
+            .story-text { font-size: 38px; line-height: 1.3; font-weight: 800; letter-spacing: -1px; margin: 0; }
+            .story-text::first-letter { color: #EF476F; font-family: 'Plus Jakarta Sans', sans-serif; float: left; font-size: 110px; line-height: 0.8; padding-right: 15px; font-weight: 900; }
+            .back-cover { background: #480CA8; color: white; border: none; justify-content: center; align-items: center; }
+            .back-inner { width: 90%; height: 90%; border: 8px double rgba(255,255,255,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+          </style>
+        </head>
+        <body>
+          <div class="page front-cover">
+            <img src="${frontCoverImg}" class="hero-bg" />
+            <div class="vignette"></div>
+            <div class="cover-content">
+              <h1 class="generic-title">A MAGICAL STORY INSIDE</h1>
+              <div class="crafted-by">Crafted by GinnieTales ✨</div>
+              <div class="order-link">ORDER YOUR STORYBOOK AT GINNIETALES.COM</div>
+            </div>
+          </div>
+          ${pages.map((text, i) => `
+            <div class="page">
+              <div class="img-container">
+                <img src="${images[i + 1] || images[i] || images[0]}" />
+              </div>
+              <div class="text-container">
+                <p class="story-text">${text}</p>
               </div>
             </div>
-         ${pages.map((text, i) => `
-  <div class="page">
-    <div class="img-container">
-      <img src="${images[i + 1] || images[i] || images[0]}" />
-    </div>
-    <div class="text-container">
-      <p class="story-text">${text}</p>
-    </div>
-  </div>
-`).join('')}
-            <div class="page back-cover">
-              <div class="back-inner">
-                <div style="font-size: 80px; margin-bottom: 20px;">🧞‍♂️</div>
-                <h2 style="font-size: 90px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0; text-transform: uppercase;">The End</h2>
-                <p style="letter-spacing: 5px; font-weight: 900; margin-top: 20px; color: #BEE9E8;">YOUR ADVENTURE LIVES ON</p>
-                <div style="margin-top: 60px; font-size: 24px; font-weight: 900; font-style: italic; color: #4CC9F0; letter-spacing: 4px;">GinnieTales.in</div>
-              </div>
+          `).join('')}
+          <div class="page back-cover">
+            <div class="back-inner">
+              <div style="font-size: 80px; margin-bottom: 20px;">🧞‍♂️</div>
+              <h2 style="font-size: 90px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0; text-transform: uppercase;">The End</h2>
+              <p style="letter-spacing: 5px; font-weight: 900; margin-top: 20px; color: #BEE9E8;">YOUR ADVENTURE LIVES ON</p>
+              <div style="margin-top: 60px; font-size: 24px; font-weight: 900; font-style: italic; color: #4CC9F0; letter-spacing: 4px;">GinnieTales.in</div>
             </div>
-          </body>
-        </html>
-      `;
-      const res = await fetch("/api/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ html: htmlContent }) });
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+          </div>
+        </body>
+      </html>
+    `;
+
+    const res = await fetch("/api/pdf", { 
+      method: "POST", 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify({ html: htmlContent }) 
+    });
+
+    if (!res.ok) throw new Error("PDF generation failed");
+
+    const blob = await res.blob();
+    
+    // ✅ MOBILE FIX: Convert blob to Base64 and trigger download
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64data = reader.result;
       const link = document.createElement("a");
-      link.href = url;
+      link.href = base64data;
       link.download = "GinnieTales_MagicBook.pdf";
       document.body.appendChild(link);
       link.click();
-      link.remove();
-    } catch (err) { console.error("PDF Error:", err); }
-  };
+      
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+    };
+    reader.readAsDataURL(blob);
+
+  } catch (err) { 
+    console.error("PDF Error:", err); 
+    alert("Download failed. If on mobile, please check browser permissions or try Chrome.");
+  }
+};
 
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-6xl mx-auto">

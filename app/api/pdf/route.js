@@ -1,23 +1,27 @@
-// app/api/pdf/route.js
 import puppeteer from "puppeteer";
 
 export async function POST(req) {
   try {
     const { html } = await req.json();
+    
+    // Note: If deploying to Vercel, consider using @sparticuz/chromium 
+    // but for local/VPS this standard puppeteer setup is fine.
     const browser = await puppeteer.launch({
       headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+    
     const page = await browser.newPage();
     
     await page.setContent(html, {
-      waitUntil: "networkidle0",
+      waitUntil: "networkidle0", // Wait for images to load
     });
     
     const pdf = await page.pdf({
-      width: '297mm',      // ✅ FIXED: A4 landscape width
-      height: '210mm',     // ✅ FIXED: A4 landscape height
+      width: '297mm',      
+      height: '210mm',     
       printBackground: true,
-      preferCSSPageSize: false,  // ✅ Let Puppeteer control size
+      preferCSSPageSize: false,  
       margin: {
         top: "0mm",
         bottom: "0mm",
@@ -28,14 +32,19 @@ export async function POST(req) {
     
     await browser.close();
     
+    // ✅ MOBILE OPTIMIZED RESPONSE
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "attachment; filename=storybook.pdf",
+        "Content-Disposition": "attachment; filename=GinnieTales_MagicBook.pdf",
+        "Content-Length": pdf.length.toString(),
       },
     });
   } catch (err) {
-    console.error(err);
-    return new Response("Error generating PDF", { status: 500 });
+    console.error("Puppeteer Error:", err);
+    return new Response(JSON.stringify({ error: "PDF Generation Failed" }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }
