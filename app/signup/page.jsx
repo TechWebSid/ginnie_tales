@@ -20,31 +20,28 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
 
   // 2. Account Creation Logic
-const handleSignUp = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    // 1. Send Verification Email immediately
-    await sendEmailVerification(user);
+      await sendEmailVerification(user);
+      await updateProfile(user, { displayName: explorerName });
 
-    await updateProfile(user, { displayName: explorerName });
+      await setDoc(doc(db, "users", user.uid), {
+        explorerName: explorerName,
+        email: email,
+        createdAt: new Date().toISOString(),
+        role: "explorer",
+        stars: 0,
+        emailVerified: false 
+      });
 
-    await setDoc(doc(db, "users", user.uid), {
-      explorerName: explorerName,
-      email: email,
-      createdAt: new Date().toISOString(),
-      role: "explorer",
-      stars: 0,
-      emailVerified: false // Track status
-    });
-
-    // 2. Redirect to verification waiting room
-    router.push("/verify-email");
+      router.push("/verify-email");
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
         setError("This email is already in the club! Try logging in.");
@@ -57,12 +54,10 @@ const handleSignUp = async (e) => {
     }
   };
 
-  // 3. Social Logic
   const handleGoogleSignUp = async () => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      // Even for Google, we save them to Firestore if it's their first time
       await setDoc(doc(db, "users", result.user.uid), {
         explorerName: result.user.displayName,
         email: result.user.email,
@@ -77,21 +72,21 @@ const handleSignUp = async (e) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F4FF] flex items-center justify-center p-6 overflow-hidden relative font-sans">
+    <div className="min-h-screen bg-[#F0F4FF] flex items-center justify-center p-4 md:p-6 overflow-x-hidden relative font-sans">
       
-      {/* 🎈 Floating Adventure Icons */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-5%] right-[-5%] w-[400px] h-[400px] bg-emerald-100 rounded-full blur-[120px] opacity-60" />
-        <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] bg-blue-100 rounded-full blur-[120px] opacity-60" />
-        <FloatingIcon emoji="🦖" top="15%" left="8%" delay={0} />
-        <FloatingIcon emoji="🚀" top="75%" right="10%" delay={1} />
-        <FloatingIcon emoji="🏰" bottom="20%" left="12%" delay={0.5} />
-        <FloatingIcon emoji="🐙" top="10%" right="20%" delay={1.5} />
+      {/* 🎈 Floating Adventure Icons (Hidden on very small screens to avoid clutter) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-5%] right-[-5%] w-[300px] md:w-[400px] h-[300px] md:h-[400px] bg-emerald-100 rounded-full blur-[100px] opacity-60" />
+        <div className="absolute bottom-[-5%] left-[-5%] w-[300px] md:w-[400px] h-[300px] md:h-[400px] bg-blue-100 rounded-full blur-[100px] opacity-60" />
+        <FloatingIcon emoji="🦖" top="10%" left="5%" delay={0} />
+        <FloatingIcon emoji="🚀" top="80%" right="5%" delay={1} />
+        <FloatingIcon emoji="🏰" bottom="15%" left="8%" delay={0.5} />
+        <FloatingIcon emoji="🐙" top="5%" right="15%" delay={1.5} />
       </div>
 
-      <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+      <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center relative z-10">
         
-        {/* 🎨 LEFT SIDE: THE MISSION BRIEF */}
+        {/* 🎨 LEFT SIDE: THE MISSION BRIEF (Visible only on Desktop) */}
         <div className="hidden lg:flex flex-col">
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -115,14 +110,14 @@ const handleSignUp = async (e) => {
           </motion.div>
         </div>
 
-        {/* 🎫 RIGHT SIDE: THE ENROLLMENT FORM */}
+        {/* 🎫 RIGHT SIDE: THE ENROLLMENT FORM (Optimized for Mobile) */}
         <motion.div 
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white border-[12px] border-white shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] rounded-[4rem] p-10 md:p-16 relative overflow-hidden"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border-[6px] md:border-[12px] border-white shadow-xl rounded-[2rem] md:rounded-[4rem] p-6 md:p-16 relative overflow-hidden w-full max-w-[500px] lg:max-w-full mx-auto"
         >
           {/* Progress Bar Visual */}
-          <div className="absolute top-0 left-0 w-full h-3 bg-slate-50">
+          <div className="absolute top-0 left-0 w-full h-2 md:h-3 bg-slate-50">
              <motion.div 
                 initial={{ width: "0%" }}
                 animate={{ width: loading ? "70%" : "33%" }}
@@ -130,56 +125,56 @@ const handleSignUp = async (e) => {
              />
           </div>
 
-          <div className="text-center mb-10">
-            <h3 className="text-4xl font-[1000] text-slate-800 tracking-tighter uppercase italic leading-none">Join the Club</h3>
-            {error && <p className="text-red-500 font-bold text-[10px] mt-2 bg-red-50 py-1 px-3 rounded-lg inline-block">{error}</p>}
+          <div className="text-center mb-2 md:mb-10">
+            <h3 className="text-3xl md:text-4xl font-[1000] text-slate-800 tracking-tighter uppercase italic leading-none">Join the Club</h3>
+            {error && <p className="text-red-500 font-bold text-[9px] md:text-[10px] mt-2 bg-red-50 py-1 px-3 rounded-lg inline-block">{error}</p>}
           </div>
 
-          <form className="space-y-5" onSubmit={handleSignUp}>
+          <form className="space-y-4 md:space-y-5" onSubmit={handleSignUp}>
             {/* Name Input */}
-            <div className="space-y-2">
-              <label className="ml-4 text-[10px] font-[1000] text-slate-400 uppercase tracking-widest">Explorer Name</label>
+            <div className="space-y-1 md:space-y-2">
+              <label className="ml-4 text-[9px] md:text-[10px] font-[1000] text-slate-400 uppercase tracking-widest">Explorer Name</label>
               <div className="relative group">
-                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl">👤</span>
+                <span className="absolute left-5 md:left-6 top-1/2 -translate-y-1/2 text-lg md:text-xl">👤</span>
                 <input 
                   required
                   type="text" 
                   value={explorerName}
                   onChange={(e) => setExplorerName(e.target.value)}
                   placeholder="Super Sam"
-                  className="w-full pl-16 pr-8 py-5 bg-slate-50 border-4 border-transparent rounded-[2rem] text-lg font-bold text-slate-700 outline-none focus:border-emerald-200 focus:bg-white transition-all shadow-inner"
+                  className="w-full pl-14 md:pl-16 pr-6 md:pr-8 py-4 md:py-5 bg-slate-50 border-4 border-transparent rounded-[1.5rem] md:rounded-[2rem] text-base md:text-lg font-bold text-slate-700 outline-none focus:border-emerald-200 focus:bg-white transition-all shadow-inner"
                 />
               </div>
             </div>
 
             {/* Email Input */}
-            <div className="space-y-2">
-              <label className="ml-4 text-[10px] font-[1000] text-slate-400 uppercase tracking-widest">Parent's Email</label>
+            <div className="space-y-1 md:space-y-2">
+              <label className="ml-4 text-[9px] md:text-[10px] font-[1000] text-slate-400 uppercase tracking-widest">Parent's Email</label>
               <div className="relative group">
-                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl">📧</span>
+                <span className="absolute left-5 md:left-6 top-1/2 -translate-y-1/2 text-lg md:text-xl">📧</span>
                 <input 
                   required
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="parent@magic.com"
-                  className="w-full pl-16 pr-8 py-5 bg-slate-50 border-4 border-transparent rounded-[2rem] text-lg font-bold text-slate-700 outline-none focus:border-emerald-200 focus:bg-white transition-all shadow-inner"
+                  className="w-full pl-14 md:pl-16 pr-6 md:pr-8 py-4 md:py-5 bg-slate-50 border-4 border-transparent rounded-[1.5rem] md:rounded-[2rem] text-base md:text-lg font-bold text-slate-700 outline-none focus:border-emerald-200 focus:bg-white transition-all shadow-inner"
                 />
               </div>
             </div>
 
             {/* Password Input */}
-            <div className="space-y-2">
-              <label className="ml-4 text-[10px] font-[1000] text-slate-400 uppercase tracking-widest">Secret Code</label>
+            <div className="space-y-1 md:space-y-2">
+              <label className="ml-4 text-[9px] md:text-[10px] font-[1000] text-slate-400 uppercase tracking-widest">Secret Code</label>
               <div className="relative group">
-                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl">🔐</span>
+                <span className="absolute left-5 md:left-6 top-1/2 -translate-y-1/2 text-lg md:text-xl">🔐</span>
                 <input 
                   required
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-16 pr-8 py-5 bg-slate-50 border-4 border-transparent rounded-[2rem] text-lg font-bold text-slate-700 outline-none focus:border-emerald-200 focus:bg-white transition-all shadow-inner"
+                  className="w-full pl-14 md:pl-16 pr-6 md:pr-8 py-4 md:py-5 bg-slate-50 border-4 border-transparent rounded-[1.5rem] md:rounded-[2rem] text-base md:text-lg font-bold text-slate-700 outline-none focus:border-emerald-200 focus:bg-white transition-all shadow-inner"
                 />
               </div>
             </div>
@@ -187,14 +182,14 @@ const handleSignUp = async (e) => {
             <button 
               disabled={loading}
               type="submit"
-              className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-[1000] text-xl tracking-[0.2em] shadow-[0_12px_0_#1e293b] hover:-translate-y-1 hover:shadow-[0_15px_0_#1e293b] active:translate-y-2 active:shadow-none transition-all uppercase italic flex items-center justify-center gap-4 disabled:opacity-50"
+              className="w-full bg-slate-900 text-white py-5 md:py-6 rounded-[2rem] md:rounded-[2.5rem] font-[1000] text-lg md:text-xl tracking-[0.1em] md:tracking-[0.2em] shadow-[0_8px_0_#1e293b] md:shadow-[0_12px_0_#1e293b] hover:-translate-y-1 hover:shadow-[0_15px_0_#1e293b] active:translate-y-2 active:shadow-none transition-all uppercase italic flex items-center justify-center gap-4 disabled:opacity-50"
             >
-               {loading ? "Registering..." : "CREATE ACCOUNT"} <span className="text-2xl">✨</span>
+               {loading ? "Registering..." : "CREATE ACCOUNT"} <span className="text-xl md:text-2xl">✨</span>
             </button>
           </form>
 
-          <div className="mt-10 pt-10 border-t-4 border-slate-50">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mt-8 md:mt-10 pt-8 md:pt-10 border-t-4 border-slate-50">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <SocialButton 
                     onClick={handleGoogleSignUp}
                     text="Google"
@@ -207,7 +202,7 @@ const handleSignUp = async (e) => {
              </div>
           </div>
 
-          <p className="mt-8 text-center text-slate-300 font-bold text-xs uppercase tracking-widest">
+          <p className="mt-8 text-center text-slate-300 font-bold text-[10px] md:text-xs uppercase tracking-widest">
             ALREADY IN THE CLUB? <Link href="/signin" className="text-emerald-500 hover:underline ml-2">LOG IN</Link>
           </p>
         </motion.div>
@@ -216,21 +211,20 @@ const handleSignUp = async (e) => {
   );
 }
 
-// ... FeatureItem, SocialButton, FloatingIcon components remain same as your snippet
 function FeatureItem({ emoji, text }) {
   return (
     <li className="flex items-center gap-4">
-       <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl border-2 border-emerald-100 shadow-inner shrink-0">
+       <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl border-2 border-emerald-100 shadow-inner shrink-0">
           {emoji}
        </div>
-       <span className="font-black text-slate-600 uppercase tracking-tighter text-lg">{text}</span>
+       <span className="font-black text-slate-600 uppercase tracking-tighter text-base md:text-lg">{text}</span>
     </li>
   );
 }
 
 function SocialButton({ icon, text, onClick }) {
   return (
-    <button onClick={onClick} className="flex items-center justify-center gap-3 py-4 border-4 border-slate-50 rounded-[1.5rem] hover:bg-slate-50 transition-all text-slate-500 font-[1000] text-[10px] uppercase tracking-widest w-full">
+    <button onClick={onClick} className="flex items-center justify-center gap-2 md:gap-3 py-3 md:py-4 border-[3px] md:border-4 border-slate-50 rounded-xl md:rounded-[1.5rem] hover:bg-slate-50 transition-all text-slate-500 font-[1000] text-[9px] md:text-[10px] uppercase tracking-widest w-full">
       {icon} {text}
     </button>
   );
@@ -245,7 +239,7 @@ function FloatingIcon({ emoji, top, left, right, bottom, delay }) {
         scale: [1, 1.1, 1]
       }}
       transition={{ duration: 5, repeat: Infinity, delay, ease: "easeInOut" }}
-      className="absolute text-5xl select-none"
+      className="absolute text-3xl md:text-5xl select-none"
       style={{ top, left, right, bottom }}
     >
       {emoji}
