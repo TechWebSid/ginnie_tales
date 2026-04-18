@@ -318,7 +318,7 @@ export default function StoryGenerator() {
                 <div className="w-full relative px-2">
                   <Book 
                     pages={output.pages} images={output.images} title={output.title}
-                    isPaid={isPaid} onPay={() => setShowCart(true)} isProcessing={loading}
+                    isPaid={isPaid} onPay={() => setShowCart(true)} isProcessing={loading} userEmail={user?.email} 
                   />
                 </div>
             </motion.div>
