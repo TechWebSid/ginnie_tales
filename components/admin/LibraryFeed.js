@@ -4,13 +4,14 @@ import React, { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileDown, BookOpen, X, Loader2 } from "lucide-react";
+import { FileDown, BookOpen, X, Loader2, Mail, CheckCircle } from "lucide-react";
 
 export default function LibraryFeed() {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStory, setSelectedStory] = useState(null);
-  const [isDownloading, setIsDownloading] = useState(null); // Tracks ID of downloading story
+  const [isDownloading, setIsDownloading] = useState(null); 
+  const [isSendingEmail, setIsSendingEmail] = useState(null); // NEW: Track email sending state
 
   useEffect(() => {
     const fetchStories = async () => {
@@ -31,52 +32,99 @@ export default function LibraryFeed() {
     fetchStories();
   }, []);
 
-  const downloadVendorPDF = async (story) => {
-    setIsDownloading(story.id);
+  // --- HTML TEMPLATE GENERATOR (Same for Download & Email) ---
+  const generateFullHtml = (story) => {
     const brandName = "GinnieTales";
-
-    const htmlContent = `
-      <!DOCTYPE html>
+    const frontCoverImg = story.coverImage || story.images?.[0] || "https://placehold.co/600x800?text=My+Story";
+    
+    return `
       <html>
         <head>
+          <meta charset="UTF-8">
+          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&family=Inter:ital,wght@0,900;1,900&display=swap" rel="stylesheet">
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&display=swap');
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: 'Plus Jakarta Sans', sans-serif; background: #fff; }
-            .page { width: 297mm; height: 210mm; display: flex; page-break-after: always; overflow: hidden; position: relative; }
-            .img-side { width: 50%; height: 100%; }
-            .img-side img { width: 100%; height: 100%; object-fit: cover; }
-            .text-side { width: 50%; height: 100%; background: #FFFCF9; padding: 60px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #eee; }
-            .story-text { font-size: 28px; line-height: 1.6; color: #1e293b; font-weight: 500; }
-            .footer { margin-top: auto; font-size: 14px; color: #ec4899; font-weight: 800; text-transform: uppercase; border-top: 2px solid #f1f5f9; padding-top: 20px; }
+            body { margin: 0; padding: 0; background: #FEF9EF; font-family: 'Inter', sans-serif; color: #1A365D; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { size: 297mm 210mm; margin: 0; }
+            .page { width: 297mm; height: 210mm; display: flex; page-break-after: always; border: 15px solid white; box-sizing: border-box; position: relative; overflow: hidden; background: #FFFCF9; }
+            .front-cover { background: #000 !important; justify-content: flex-end; align-items: center; }
+            .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+            .vignette { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 30%, transparent 50%); z-index: 2; }
+            .cover-content { position: relative; z-index: 10; padding-bottom: 30px; text-align: center; width: 100%; }
+            .generic-title { font-size: 45px; font-weight: 900; font-style: italic; color: #FFD166 !important; margin: 0 0 10px 0; text-transform: uppercase; text-shadow: 0 5px 15px rgba(0,0,0,0.8); }
+            .img-container { width: 50%; height: 100%; border-right: 10px solid white; overflow: hidden; }
+            .img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .text-container { width: 50%; padding: 60px; background: #FFFCF9 !important; display: flex; align-items: center; box-sizing: border-box; }
+            .story-text { font-size: 28px; line-height: 1.4; font-weight: 800; letter-spacing: -1px; margin: 0; text-align: left; }
+            .story-text::first-letter { color: #EF476F !important; font-family: 'Plus Jakarta Sans', sans-serif; float: left; font-size: 80px; line-height: 0.8; padding-right: 15px; font-weight: 900; }
+            .back-cover { background: #480CA8 !important; color: white !important; border: none; justify-content: center; align-items: center; }
+            .back-inner { width: 90%; height: 90%; border: 8px double rgba(255,255,255,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+            * { -webkit-print-color-adjust: exact !important; }
           </style>
         </head>
         <body>
-          <div class="page" style="background: #ec4899; justify-content: center; align-items: center; color: white;">
-            <img src="${story.coverImage}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.5;" />
-            <div style="position:relative; z-index:10; text-align:center; background: rgba(0,0,0,0.3); padding: 40px; backdrop-filter: blur(10px); border-radius: 40px;">
-                <h1 style="font-size: 50px; text-transform: uppercase; letter-spacing: -2px;">${story.prompt}</h1>
-                <p style="margin-top: 10px; font-weight: 800; opacity: 0.8;">VENDOR COPY - GINNIETALES</p>
+          <div class="page front-cover">
+            <img src="${frontCoverImg}" class="hero-bg" />
+            <div class="vignette"></div>
+            <div class="cover-content">
+              <h1 class="generic-title">A MAGICAL STORY INSIDE</h1>
+              <div style="font-size: 18px; font-weight: 900; font-style: italic; color: #06D6A0; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;">Crafted by GinnieTales ✨</div>
+              <div style="font-size: 12px; color: white; opacity: 0.8; letter-spacing: 4px;">VENDOR COPY | ID: ${story.id.slice(0,8)}</div>
             </div>
           </div>
           ${story.pages.map((text, i) => `
             <div class="page">
-              <div class="img-side"><img src="${story.images?.[i] || story.coverImage}" /></div>
-              <div class="text-side">
+              <div class="img-container"><img src="${story.images?.[i] || story.coverImage}" /></div>
+              <div class="text-container">
                 <p class="story-text">${text}</p>
-                <div class="footer">${brandName.toUpperCase()} | PAGE ${i + 1}</div>
               </div>
             </div>
           `).join('')}
+          <div class="page back-cover">
+            <div class="back-inner">
+              <div style="font-size: 80px; margin-bottom: 20px;">🧞‍♂️</div>
+              <h2 style="font-size: 90px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0; text-transform: uppercase;">The End</h2>
+              <div style="margin-top: 60px; font-size: 24px; font-weight: 900; font-style: italic; color: #4CC9F0; letter-spacing: 4px;">GinnieTales Admin View</div>
+            </div>
+          </div>
         </body>
       </html>
     `;
+  };
 
+  // --- 1. NEW: SEND TO ADMIN GMAIL ---
+  const sendAdminEmail = async (story) => {
+    setIsSendingEmail(story.id);
+    try {
+      const response = await fetch("/api/send-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storyHtml: generateFullHtml(story),
+          userEmail: "siddharthasrivastava40@gmail.com", // Hardcoded Admin Email
+          storyTitle: `ADMIN_COPY_${story.id.slice(0,6)}`
+        }),
+      });
+
+      if (response.ok) {
+        alert("Magic Sent to Admin Gmail! 🧞‍♂️📧");
+      } else {
+        throw new Error("Email failed");
+      }
+    } catch (err) {
+      alert("Email Error: " + err.message);
+    } finally {
+      setIsSendingEmail(null);
+    }
+  };
+
+  // --- 2. EXISTING: DOWNLOAD VENDOR PDF ---
+  const downloadVendorPDF = async (story) => {
+    setIsDownloading(story.id);
     try {
       const response = await fetch("/api/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html: htmlContent }),
+        body: JSON.stringify({ html: generateFullHtml(story) }),
       });
 
       if (!response.ok) throw new Error("PDF generation failed");
@@ -128,24 +176,36 @@ export default function LibraryFeed() {
               <p className="text-slate-700 font-bold text-sm line-clamp-2 italic flex-1 mb-4">"{story.prompt}"</p>
               
               <div className="flex items-center justify-between py-4 border-t border-slate-50">
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">ID: {story.userId.slice(0, 8)}...</span>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">ID: {story.userId?.slice(0, 8)}...</span>
                 <span className="font-black text-slate-800 text-sm">{story.pages?.length || 0} Pages</span>
               </div>
 
-              <button 
-                onClick={() => downloadVendorPDF(story)}
-                disabled={isDownloading === story.id}
-                className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isDownloading === story.id ? <Loader2 className="animate-spin" size={14} /> : <FileDown size={14} />}
-                {isDownloading === story.id ? "Generating..." : "Download Vendor PDF"}
-              </button>
+              {/* ACTION BUTTONS */}
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={() => downloadVendorPDF(story)}
+                  disabled={isDownloading === story.id}
+                  className="w-full py-4 bg-slate-100 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDownloading === story.id ? <Loader2 className="animate-spin" size={14} /> : <FileDown size={14} />}
+                  {isDownloading === story.id ? "Generating..." : "Download PDF"}
+                </button>
+
+                <button 
+                  onClick={() => sendAdminEmail(story)}
+                  disabled={isSendingEmail === story.id}
+                  className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg"
+                >
+                  {isSendingEmail === story.id ? <Loader2 className="animate-spin" size={14} /> : <Mail size={14} />}
+                  {isSendingEmail === story.id ? "Sending Magic..." : "Send to Admin Gmail"}
+                </button>
+              </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* --- READER MODAL --- */}
+      {/* --- READER MODAL (No changes here) --- */}
       <AnimatePresence>
         {selectedStory && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-xl p-4 md:p-10 flex items-center justify-center">
