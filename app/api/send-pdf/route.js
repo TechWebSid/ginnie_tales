@@ -5,7 +5,7 @@ import puppeteer from "puppeteer-core";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Vercel Timeout issue fix (Free tier pe 10s hota hai, hum 60s tak le ja rahe hain)
+// Vercel function timeout fix
 export const maxDuration = 60; 
 
 export async function POST(req) {
@@ -20,37 +20,35 @@ export async function POST(req) {
 
     const isLocal = process.env.NODE_ENV === 'development';
     
-    // --- FORCE PATH LOGIC ---
-    let execPath;
-    if (isLocal) {
-      // Windows standard path, Mac/Linux hai toh please change it
-      execPath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"; 
-    } else {
-      // Vercel/Production: @sparticuz/chromium will fetch the binary
-      execPath = await chromium.executablePath();
+    // Vercel/Lambda specific settings
+    if (!isLocal) {
+      // Graphics mode disable karna zaroori hai serverless environment ke liye
+      chromium.setGraphicsMode = false;
     }
 
-    console.log("Launching browser with path:", execPath);
+    // Path resolution
+    const execPath = isLocal 
+      ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" // Windows
+      : await chromium.executablePath();
 
     browser = await puppeteer.launch({
       args: isLocal 
-        ? ['--no-sandbox'] 
-        : [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        ? ["--no-sandbox"] 
+        : [...chromium.args, "--hide-scrollbars", "--disable-web-security"],
       defaultViewport: chromium.defaultViewport,
       executablePath: execPath,
       headless: isLocal ? true : chromium.headless,
-      ignoreHTTPSErrors: true,
     });
 
     const page = await browser.newPage();
     
-    // Yahan hum html content inject kar rahe hain
+    // Inject HTML
     await page.setContent(storyHtml, { 
       waitUntil: "networkidle0",
-      timeout: 30000 // 30 seconds wait for assets to load
+      timeout: 30000 
     });
 
-    // Generate PDF (Landscape mode for your template)
+    // Generate PDF
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -59,23 +57,21 @@ export async function POST(req) {
     });
 
     await browser.close();
-    browser = null; // Memory management
+    browser = null;
 
-    // Convert PDF Buffer to Base64 for Resend
+    // Convert to Base64
     const base64Content = Buffer.from(pdfBuffer).toString("base64");
 
-    // Send Email via Resend
+    // Send via Resend
     const data = await resend.emails.send({
       from: "Ginnie Tales <magic@techwebsid.in>", 
       to: userEmail,
       subject: `✨ Your Magical Story: ${storyTitle}`,
       html: `
-        <div style="font-family: 'Helvetica', sans-serif; padding: 30px; background-color: #FEF9EF; border-radius: 20px; border: 4px solid #FFD166;">
-          <h1 style="color: #EF476F; font-style: italic;">Hello, Magic Maker! 🧞‍♂️</h1>
-          <p style="font-size: 18px; color: #073B4C;">Aapki story <b>"${storyTitle}"</b> ban kar taiyaar ho chuki hai.</p>
-          <p style="font-size: 14px; color: #118AB2;">Humne is email ke saath print-ready PDF attach kar di hai.</p>
-          <hr style="border: 1px dashed #FFD166; margin: 20px 0;" />
-          <p style="font-weight: bold; color: #073B4C;">Magic awaits you!</p>
+        <div style="font-family: sans-serif; padding: 20px; border: 2px solid #EF476F; border-radius: 15px;">
+          <h2 style="color: #EF476F;">Magic Delivered! 🧞‍♂️</h2>
+          <p>Hi Explorer, your story <b>"${storyTitle}"</b> is ready for printing.</p>
+          <p>Check the attachment below.</p>
         </div>
       `,
       attachments: [
@@ -89,9 +85,8 @@ export async function POST(req) {
     return NextResponse.json({ success: true, data });
 
   } catch (error) {
-    console.error("Critical PDF/Email Error:", error);
+    console.error("Critical Error in PDF Route:", error);
     
-    // Safety check to close browser in case of crash
     if (browser !== null) {
       await browser.close();
     }
