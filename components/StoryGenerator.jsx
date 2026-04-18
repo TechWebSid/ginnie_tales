@@ -183,16 +183,17 @@ export default function StoryGenerator() {
     if (plan === "hardcopy") setShowShippingForm(true);
     else startPayment("ebook");
   };
-
-  const startPayment = async (plan) => {
+const startPayment = async (plan) => {
     if (plan === "hardcopy" && (!shippingDetails.phone || !shippingDetails.address)) {
       setShowShippingForm(true);
       return;
     }
     if (!window.Razorpay) return alert("Razorpay SDK error.");
 
-    setLoading(true);
-    setLoadingStage("💎 Preparing Checkout...");
+    // Payment start hone se pehle cart band kar do taaki background clear rahe
+    setShowCart(false);
+    setShowShippingForm(false);
+
     const price = plan === "hardcopy" ? 1499 : 499;
 
     try {
@@ -207,20 +208,35 @@ export default function StoryGenerator() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
         amount: order.amount,
         currency: "INR",
-        name: "Genie Tales",
+        name: "Ginnie Tales",
         order_id: order.id,
-        handler: async (res) => verifyAndStartMagic(res, plan),
+        handler: async (res) => {
+          // YAHAN SE LOCK SHURU: Jaise hi payment successful hui, turant loader dikhao
+          setLoading(true); 
+          setLoadingStage("🔐 Payment Secured! Locking Tale...");
+          await verifyAndStartMagic(res, plan);
+        },
         prefill: { email: user?.email, contact: shippingDetails.phone },
         theme: { color: "#EF476F" },
-        modal: { ondismiss: () => setLoading(false) }
+        modal: { 
+          ondismiss: () => {
+            // Agar user ne bina pay kiye close kiya tabhi loading band hogi
+            if (!isPaid) setLoading(false);
+          },
+          // Anti-Escape: User galti se bahar na click kar de
+          escape: false,
+          backdropclose: false
+        }
       };
-      new window.Razorpay(options).open();
-    } catch (err) { setLoading(false); }
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) { 
+      setLoading(false); 
+    }
   };
-
-  const verifyAndStartMagic = async (rzpResponse, plan) => {
-    setLoading(true);
-    setLoadingStage("🛡️ Verifying Payment...");
+const verifyAndStartMagic = async (rzpResponse, plan) => {
+    // Stage 1: Verification
+    setLoadingStage("🛡️ Verifying with Bank...");
     try {
       const res = await fetch("/api/razorpay/verify", {
         method: "POST",
@@ -231,15 +247,24 @@ export default function StoryGenerator() {
         }),
       });
       const data = await res.json();
+      
       if (data.success) {
         setIsPaid(true);
-        setShowCart(false);
-        setShowShippingForm(false);
+        // Stage 2: Immediate Transition
+        setLoadingStage("🧞‍♂️ Granting Your Wish...");
+        // Bina kisi delay ke generation trigger kar do
         await generateRemainingPages(); 
+      } else {
+        setLoading(false);
+        alert("Payment Verification Failed. Please contact support.");
       }
-    } catch (err) { setLoading(false); }
+    } catch (err) { 
+      console.error("Verification Error:", err);
+      // Yahan hum band nahi karenge loading, balki retry ya error state dikhayenge
+      setLoadingStage("⚠️ Connection Slow... Still Verifying...");
+      // Re-try logic ya support link dikha sakte ho
+    }
   };
-
   useEffect(() => {
     gsap.to(leftCurtainRef.current, { x: "-100%", duration: 1.4, ease: "expo.inOut", delay: 0.5 });
     gsap.to(rightCurtainRef.current, { x: "100%", duration: 1.4, ease: "expo.inOut", delay: 0.5 });
@@ -270,23 +295,34 @@ export default function StoryGenerator() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center pt-8 md:pt-12">
                 
                 {/* Loader Overlay */}
-                {loading && (
-                   <div className="fixed inset-0 z-[200] bg-[#073B4C]/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-white">
-                      <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 3 }} className="mb-8 p-6 bg-[#FFD166] rounded-full">
-                        <Sparkles className="w-16 h-16 text-[#073B4C] fill-[#073B4C]" />
-                      </motion.div>
-                      <h3 className="text-4xl font-black mb-4 text-[#06D6A0]">PAINTING TALE...</h3>
-                      <p className="text-xl font-bold text-[#FFD166] mb-10 uppercase">{loadingStage}</p>
-                      
-                      <div className="w-full max-w-xl bg-white/10 h-8 rounded-2xl border-[3px] border-white/30 mb-12 overflow-hidden p-1">
-                        <motion.div className="h-full bg-gradient-to-r from-[#EF476F] to-[#FFD166] rounded-xl" animate={{ width: `${(progress / output.pages.length) * 100}%` }} />
-                      </div>
-                      
-                      <button onClick={handleCancel} className="flex items-center gap-3 px-10 py-5 bg-[#EF476F] border-b-4 border-[#C9184A] rounded-2xl font-black uppercase text-lg">
-                        <XCircle size={24} /> Stop Magic
-                      </button>
-                   </div>
-                )}
+                {/* Loader Overlay */}
+{loading && (
+   <div className="fixed inset-0 z-[200] bg-[#073B4C]/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-white text-center">
+      <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ repeat: Infinity, duration: 4 }} className="mb-8 p-6 bg-[#FFD166] rounded-full shadow-[0_0_50px_rgba(255,209,102,0.3)]">
+        <Sparkles className="w-16 h-16 text-[#073B4C] fill-[#073B4C]" />
+      </motion.div>
+      
+      <h3 className="text-4xl font-[1000] mb-2 text-[#06D6A0] italic tracking-tighter">DON'T CLOSE THIS PAGE</h3>
+      <p className="text-sm font-black text-white/50 mb-8 uppercase tracking-[0.3em]">Magic is in progress. Closing may interrupt your order.</p>
+      
+      <p className="text-xl font-bold text-[#FFD166] mb-10 uppercase italic">{loadingStage}</p>
+      
+      <div className="w-full max-w-xl bg-white/10 h-6 rounded-full border-2 border-white/20 mb-12 overflow-hidden p-1">
+        <motion.div 
+          className="h-full bg-gradient-to-r from-[#EF476F] via-[#FFD166] to-[#06D6A0] rounded-full" 
+          animate={{ width: `${(progress / (output?.pages?.length || 10)) * 100}%` }} 
+          transition={{ duration: 0.5 }}
+        />
+      </div>
+
+      {/* Payment ke baad "Stop" button hide kar dena chahiye strictly */}
+      {!isPaid && (
+        <button onClick={handleCancel} className="flex items-center gap-3 px-10 py-5 bg-[#EF476F] border-b-4 border-[#C9184A] rounded-2xl font-black uppercase text-lg active:translate-y-1 transition-all">
+          <XCircle size={24} /> Stop Magic
+        </button>
+      )}
+   </div>
+)}
 
                 {/* Generation Stopped Card */}
                 {generationStopped && (

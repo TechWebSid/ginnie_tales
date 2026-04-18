@@ -10,87 +10,139 @@ import {
   updateDoc, 
   serverTimestamp 
 } from "firebase/firestore";
-import { Mail, Loader2, CheckCircle2 } from "lucide-react"; // Icons for Ops
+import { Mail, Loader2, FileDown } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth"; // <-- Add this import
 
 const STATUS_FLOW = ["Processing", "Sent for Printing", "Shipped", "Delivered"];
 
 export default function OrderManager() {
+  const { user } = useAuth(); // <-- Get user state
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("hardcopy");
-  const [sendingId, setSendingId] = useState(null); // Tracking email state
+  const [sendingId, setSendingId] = useState(null);
 
   useEffect(() => {
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setOrders(ordersData);
-    });
-    return () => unsubscribe();
-  }, []);
+    // 1. Agar user nahi hai (logout), toh listener mat lagao aur orders khali kar do
+    if (!user) {
+      setOrders([]);
+      return;
+    }
 
-  // --- HTML TEMPLATE (Same as Admin/Library) ---
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+
+    // 2. onSnapshot ko error handler ke saath setup karo
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const ordersData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setOrders(ordersData);
+      },
+      (error) => {
+        // 3. Logout ke time aane wali permission error ko yahan handle karo
+        if (error.code === 'permission-denied') {
+          console.warn("Ops Listener: Permissions revoked (User logged out).");
+        } else {
+          console.error("Firestore Error:", error);
+        }
+      }
+    );
+
+    // 4. Cleanup function: Component unmount ya user logout pe listener band karega
+    return () => unsubscribe();
+  }, [user]); // <-- User dependency add karna zaroori hai
+
+  // --- 100% SAME TEMPLATE AS LIBRARY FEED ---
   const generateOpsHtml = (order) => {
-    const frontCoverImg = order.coverImage || "https://placehold.co/600x800?text=No+Cover";
+    // Yahan check karo agar data missing hai toh placeholder use ho
+    const pages = order.pages || [];
+    const images = order.images || [];
+    const frontCoverImg = order.coverImage || images[0] || "https://placehold.co/600x800?text=No+Cover";
+    
     return `
       <html>
         <head>
+          <meta charset="UTF-8">
+          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&family=Inter:ital,wght@0,900;1,900&display=swap" rel="stylesheet">
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&family=Inter:wght@900&display=swap');
-            body { margin: 0; padding: 0; background: #FEF9EF; font-family: 'Inter', sans-serif; }
+            body { margin: 0; padding: 0; background: #FEF9EF; font-family: 'Inter', sans-serif; color: #1A365D; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             @page { size: 297mm 210mm; margin: 0; }
             .page { width: 297mm; height: 210mm; display: flex; page-break-after: always; border: 15px solid white; box-sizing: border-box; position: relative; overflow: hidden; background: #FFFCF9; }
-            .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-            .vignette { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); z-index: 2; }
-            .cover-text { position: absolute; bottom: 50px; width: 100%; text-align: center; z-index: 10; color: #FFD166; font-size: 40px; text-transform: uppercase; font-style: italic; }
-            .img-side { width: 50%; height: 100%; border-right: 10px solid white; }
-            .img-side img { width: 100%; height: 100%; object-fit: cover; }
-            .text-side { width: 50%; padding: 60px; display: flex; align-items: center; background: #FFFCF9; }
-            .story-p { font-size: 28px; line-height: 1.5; font-weight: 800; color: #073B4C; }
-            .back-cover { background: #480CA8 !important; justify-content: center; align-items: center; color: white; }
+            .front-cover { background: #000 !important; justify-content: flex-end; align-items: center; }
+            .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+            .vignette { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 30%, transparent 50%); z-index: 2; }
+            .cover-content { position: relative; z-index: 10; padding-bottom: 30px; text-align: center; width: 100%; }
+            .generic-title { font-size: 45px; font-weight: 900; font-style: italic; color: #FFD166 !important; margin: 0 0 10px 0; text-transform: uppercase; text-shadow: 0 5px 15px rgba(0,0,0,0.8); }
+            .img-container { width: 50%; height: 100%; border-right: 10px solid white; overflow: hidden; }
+            .img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .text-container { width: 50%; padding: 60px; background: #FFFCF9 !important; display: flex; align-items: center; box-sizing: border-box; }
+            .story-text { font-size: 28px; line-height: 1.4; font-weight: 800; letter-spacing: -1px; margin: 0; text-align: left; }
+            .story-text::first-letter { color: #EF476F !important; font-family: 'Plus Jakarta Sans', sans-serif; float: left; font-size: 80px; line-height: 0.8; padding-right: 15px; font-weight: 900; }
+            .back-cover { background: #480CA8 !important; color: white !important; border: none; justify-content: center; align-items: center; }
+            .back-inner { width: 90%; height: 90%; border: 8px double rgba(255,255,255,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+            * { -webkit-print-color-adjust: exact !important; }
           </style>
         </head>
         <body>
-          <div class="page"><img src="${frontCoverImg}" class="hero-bg"/><div class="vignette"></div><div class="cover-text">${order.storyTitle}</div></div>
-          ${order.pages?.map((text, i) => `
-            <div class="page">
-              <div class="img-side"><img src="${order.images?.[i] || frontCoverImg}"/></div>
-              <div class="text-side"><p class="story-p">${text}</p></div>
+          <div class="page front-cover">
+            <img src="${frontCoverImg}" class="hero-bg" />
+            <div class="vignette"></div>
+            <div class="cover-content">
+              <h1 class="generic-title">A MAGICAL STORY INSIDE</h1>
+              <div style="font-size: 18px; font-weight: 900; font-style: italic; color: #06D6A0; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;">Crafted by GinnieTales ✨</div>
+              <div style="font-size: 12px; color: white; opacity: 0.8; letter-spacing: 4px;">VENDOR COPY | ORDER: ${order.orderId || order.id.slice(0,8)}</div>
             </div>
-          `).join('') || ''}
-          <div class="page back-cover"><h1>GINNIETALES OPS COPY</h1></div>
+          </div>
+          ${pages.map((text, i) => `
+            <div class="page">
+              <div class="img-container"><img src="${images[i] || frontCoverImg}" /></div>
+              <div class="text-container">
+                <p class="story-text">${text}</p>
+              </div>
+            </div>
+          `).join('')}
+          <div class="page back-cover">
+            <div class="back-inner">
+              <div style="font-size: 80px; margin-bottom: 20px;">🧞‍♂️</div>
+              <h2 style="font-size: 90px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0; text-transform: uppercase;">The End</h2>
+              <div style="margin-top: 60px; font-size: 24px; font-weight: 900; font-style: italic; color: #4CC9F0; letter-spacing: 4px;">GinnieTales Admin View</div>
+            </div>
+          </div>
         </body>
       </html>
     `;
   };
 
-  // --- SEND TO PRINTING GMAIL ---
   const sendToPrinting = async (order) => {
+    // CRITICAL CHECK: Agar data missing hai toh warn karo
+    if (!order.pages || order.pages.length === 0) {
+      alert("Error: Pages missing in this Order document! Check your Firebase verify route.");
+      return;
+    }
+
     setSendingId(order.id);
     try {
-      const res = await fetch("/api/send-pdf", {
+      const response = await fetch("/api/send-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storyHtml: generateOpsHtml(order),
-          userEmail: "siddharthasrivastava30@gmail.com", // Aapki working email
+          userEmail: "siddharthasrivastava30@gmail.com", // Admin/Ops email
           storyTitle: `PRINT_READY_${order.orderId || order.id.slice(0,6)}`
-        })
+        }),
       });
 
-      if (res.ok) {
-        // Automatically update status to "Sent for Printing" after successful email
+      if (response.ok) {
         if(order.planType === 'hardcopy') {
           await handleStatusChange(order.id, "Sent for Printing");
         }
-        alert("Sent to Printing Gmail! 🧞‍♂️🖨️");
+        alert("Magic Sent to Printing! 🧞‍♂️📧");
       } else {
-        alert("Failed to send.");
+        throw new Error("Email failed");
       }
     } catch (err) {
-      console.error(err);
+      alert("Error: " + err.message);
     } finally {
       setSendingId(null);
     }
@@ -104,7 +156,7 @@ export default function OrderManager() {
         lastUpdated: serverTimestamp()
       });
     } catch (err) {
-      alert("Error updating status: " + err.message);
+      console.error(err);
     }
   };
 
@@ -194,7 +246,6 @@ export default function OrderManager() {
                 )}
               </div>
             </div>
-
           </div>
         ))}
 
