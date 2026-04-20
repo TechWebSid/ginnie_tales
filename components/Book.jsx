@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Sparkles, ArrowLeft, ArrowRight, CheckCircle2, 
-  FileDown, BookOpen, RotateCcw, Lock, Zap, Loader2, Palette 
+  FileDown, BookOpen,XCircle, RotateCcw, Lock, Zap, Loader2, Palette 
 } from "lucide-react";
 
 export default function Book({ 

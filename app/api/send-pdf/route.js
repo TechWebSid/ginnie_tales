@@ -1,12 +1,24 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const BROWSERLESS_TOKEN = process.env.BROWSERLESS_TOKEN;
 
-// Vercel function timeout fix
 export const maxDuration = 60; 
+
+async function connectWithRetry(retries = 2, delay = 3000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await puppeteer.connect({
+        browserWSEndpoint: `wss://chrome.browserless.io?token=${BROWSERLESS_TOKEN}`,
+      });
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise((res) => setTimeout(res, delay));
+    }
+  }
+}
 
 export async function POST(req) {
   let browser = null;
@@ -14,41 +26,22 @@ export async function POST(req) {
   try {
     const { storyHtml, userEmail, storyTitle } = await req.json();
 
-    if (!userEmail) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
-    }
-
-    const isLocal = process.env.NODE_ENV === 'development';
-    
-    // Vercel/Lambda specific settings
-    if (!isLocal) {
-      // Graphics mode disable karna zaroori hai serverless environment ke liye
-      chromium.setGraphicsMode = false;
-    }
-
-    // Path resolution
-    const execPath = isLocal 
-      ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" // Windows
-      : await chromium.executablePath();
-
-    browser = await puppeteer.launch({
-      args: isLocal 
-        ? ["--no-sandbox"] 
-        : [...chromium.args, "--hide-scrollbars", "--disable-web-security"],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: execPath,
-      headless: isLocal ? true : chromium.headless,
-    });
-
+    browser = await connectWithRetry();
     const page = await browser.newPage();
     
-    // Inject HTML
+    // images ke loading time ko optimize karne ke liye cache disable karein
+    await page.setCacheEnabled(false);
+
+    // FIX: 'load' use karein jo fast hota hai, aur timeout thoda badhayein
     await page.setContent(storyHtml, { 
-      waitUntil: "networkidle0",
+      waitUntil: "load", 
       timeout: 30000 
     });
 
-    // Generate PDF
+    // Sabse important: Ek manual wait taaki images render ho jayein
+    // 4-8 pages ke liye 4000 (4s) kafi hai, 25 pages ke liye 8000 (8s) kar dena
+    await new Promise(resolve => setTimeout(resolve, 5000)); 
+
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -59,21 +52,13 @@ export async function POST(req) {
     await browser.close();
     browser = null;
 
-    // Convert to Base64
     const base64Content = Buffer.from(pdfBuffer).toString("base64");
 
-    // Send via Resend
     const data = await resend.emails.send({
       from: "Ginnie Tales <magic@techwebsid.in>", 
       to: userEmail,
       subject: `✨ Your Magical Story: ${storyTitle}`,
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; border: 2px solid #EF476F; border-radius: 15px;">
-          <h2 style="color: #EF476F;">Magic Delivered! 🧞‍♂️</h2>
-          <p>Hi Explorer, your story <b>"${storyTitle}"</b> is ready for printing.</p>
-          <p>Check the attachment below.</p>
-        </div>
-      `,
+      html: `<p>Your story <b>"${storyTitle}"</b> is ready!</p>`,
       attachments: [
         {
           filename: `${storyTitle.replace(/\s+/g, '_')}.pdf`,
@@ -85,15 +70,8 @@ export async function POST(req) {
     return NextResponse.json({ success: true, data });
 
   } catch (error) {
-    console.error("Critical Error in PDF Route:", error);
-    
-    if (browser !== null) {
-      await browser.close();
-    }
-
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
-    }, { status: 500 });
+    console.error("Critical PDF Error:", error);
+    if (browser) await browser.close();
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
