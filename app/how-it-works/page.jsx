@@ -1,195 +1,210 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { motion, useScroll, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { 
-  UserCircle2, 
-  Sparkles, 
-  Camera, 
-  Wand2, 
-  BookOpen, 
-  CheckCircle2,
-  ArrowRight,
-  Zap
+  UserCircle2, Sparkles, Camera, Wand2, 
+  Rocket, Star, Heart, Zap, ChevronDown
 } from "lucide-react";
 
-const Steps = [
+const STEPS = [
   {
-    id: "01",
-    title: "Identity & Soul",
-    desc: "Start by giving your hero a name and choosing their age. This sets the foundation for the magic logic.",
-    icon: <UserCircle2 className="w-8 h-8" />,
-    color: "from-[#EF476F] to-[#FF9F1C]",
-    tag: "Profile Set"
+    title: "The Hero's Name",
+    desc: "Give your legend an identity! Every story starts with a name.",
+    icon: <UserCircle2 size={32} />,
+    color: "#FF70A6",
+    rotation: "-2deg"
+  },
+{
+    title: "Pick a World",
+    desc: "From Dino Jungles to Candy Clouds—you choose the stage!",
+    icon: <Sparkles size={32} />, // Fix is here
+    color: "#4CC9F0",
+    rotation: "2deg"
   },
   {
-    id: "02",
-    title: "Theme & Universe",
-    desc: "Pick a theme like 'Educational' or 'Fairy Tales'. Our AI uses this to craft the atmospheric narrative.",
-    icon: <Sparkles className="w-8 h-8" />,
-    color: "from-[#06D6A0] to-[#118AB2]",
-    tag: "World Building"
+    title: "The Magic Photo",
+    desc: "Snap a pic! Our AI paints your child into every page.",
+    icon: <Camera size={32} />,
+    color: "#FFD670",
+    rotation: "-1deg"
   },
   {
-    id: "03",
-    title: "The Visual Spark",
-    desc: "Upload a photo of your child. Our Genie AI will blend their likeness into the chosen art style.",
-    icon: <Camera className="w-8 h-8" />,
-    color: "from-[#4CC9F0] to-[#480CA8]",
-    tag: "Visual Synthesis"
-  },
-  {
-    id: "04",
-    title: "Make Magic!",
-    desc: "Hit the button! Watch as our Genie paints 12 unique pages and weaves a personalized story.",
-    icon: <Wand2 className="w-8 h-8" />,
-    color: "from-[#FFD166] to-[#EF476F]",
-    tag: "Generation"
+    title: "Poof! Storytime",
+    desc: "In minutes, a 24-page cinematic masterpiece is born.",
+    icon: <Wand2 size={32} />,
+    color: "#06D6A0",
+    rotation: "1deg"
   }
 ];
 
-export default function AlchemyLab() {
+export default function MagicRecipe() {
   const router = useRouter();
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
 
   return (
-    <div className="min-h-screen bg-[#FEF9EF] relative overflow-hidden font-sans pb-20">
-      {/* Dynamic Background Noise/Gradients */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#EF476F] rounded-full blur-[150px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#06D6A0] rounded-full blur-[150px]" />
+    <div className="min-h-screen bg-[#FFFBF5] font-sans selection:bg-pink-200 overflow-x-hidden">
+      
+      {/* 🚀 Progress Bar */}
+      <motion.div className="fixed top-0 left-0 right-0 h-2 bg-pink-500 z-50 origin-left" style={{ scaleX }} />
+
+      {/* 🎨 FLOATING BACKGROUND ELEMENTS */}
+      <div className="fixed inset-0 pointer-events-none opacity-10">
+        <div className="absolute top-[10%] left-[5%] animate-bounce"><Star size={80} fill="#FFD670" color="#FFD670" /></div>
+        <div className="absolute bottom-[20%] right-[5%] animate-pulse"><Heart size={100} fill="#FF70A6" color="#FF70A6" /></div>
+        <div className="absolute top-[40%] right-[10%] rotate-12"><Zap size={60} fill="#4CC9F0" color="#4CC9F0" /></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 pt-20 relative z-10">
-        {/* Hero Branding */}
-        <div className="text-center mb-24">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
+        
+        {/* 👑 BOLD HEADER SECTION */}
+        <header className="pt-16 pb-12 md:pt-24 md:pb-20 text-center">
           <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="inline-flex items-center gap-2 px-6 py-2 bg-white border-2 border-[#073B4C] rounded-full shadow-[4px_4px_0px_#073B4C] mb-8"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-[#2D3047] rounded-full font-black uppercase text-[10px] md:text-xs tracking-widest mb-6 shadow-[4px_4px_0px_#2D3047]"
           >
-            <Zap size={16} className="text-[#FFD166] fill-[#FFD166]" />
-            <span className="text-xs font-black uppercase tracking-widest text-[#073B4C]">Magic Protocol 2.0</span>
+            <Sparkles size={14} className="text-pink-500" />
+            How the magic happens
           </motion.div>
           
-          <motion.h1 
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="text-7xl md:text-9xl font-[1000] text-[#073B4C] leading-none tracking-tighter uppercase mb-6"
-          >
-            The Alchemy <br /> <span className="text-[#EF476F]">Lab</span>
-          </motion.h1>
+          <h1 className="text-[14vw] md:text-[9rem] font-[1000] text-[#2D3047] leading-[0.85] tracking-tighter uppercase italic mb-4">
+            Magic <br /> 
+            <span className="text-blue-500 drop-shadow-[4px_4px_0px_#2D3047]">Recipe</span>
+          </h1>
           
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-xl md:text-2xl text-slate-500 font-bold max-w-2xl mx-auto leading-tight"
+          <motion.div 
+            animate={{ y: [0, 10, 0] }} 
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="mt-8 flex justify-center opacity-40"
           >
-            How we turn a single photo into a 24-page cinematic adventure. Simple for kids, powerful for parents.
-          </motion.p>
-        </div>
+            <ChevronDown size={40} />
+          </motion.div>
+        </header>
 
-        {/* The Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          {Steps.map((step, index) => (
-            <motion.div
-              key={step.id}
-              initial={{ opacity: 0, x: index % 2 === 0 ? -100 : 100 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="group relative"
-            >
-              <div className="absolute inset-0 bg-[#073B4C] rounded-[3rem] translate-x-3 translate-y-3 transition-transform group-hover:translate-x-5 group-hover:translate-y-5" />
-              
-              <div className="relative bg-white border-[6px] border-[#073B4C] rounded-[3rem] p-10 h-full flex flex-col justify-between overflow-hidden">
-                {/* Background Number */}
-                <span className="absolute -right-4 -top-8 text-[12rem] font-black text-slate-50 opacity-[0.03] select-none pointer-events-none">
-                  {step.id}
-                </span>
+        {/* 🎢 THE INTERACTIVE PATH */}
+        <div className="relative pb-20">
+          {/* Central Path Line */}
+          <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-2 bg-[#2D3047] md:-translate-x-1/2 rounded-full opacity-10" />
 
-                <div>
-                  <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${step.color} border-4 border-[#073B4C] flex items-center justify-center text-white mb-8 shadow-lg`}>
-                    {step.icon}
+          <div className="space-y-12 md:space-y-24 relative">
+            {STEPS.map((step, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                className={`flex items-center w-full ${i % 2 !== 0 ? 'md:flex-row-reverse' : 'md:flex-row'}`}
+              >
+                {/* Content Side */}
+                <div className="w-full md:w-[48%] pl-16 md:pl-0">
+                  <div 
+                    className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border-[4px] md:border-[6px] border-[#2D3047] shadow-[8px_8px_0px_#2D3047] md:shadow-[16px_16px_0px_#2D3047] relative group hover:-rotate-0 transition-transform duration-300"
+                    style={{ rotate: step.rotation }}
+                  >
+                    <div 
+                      className="w-14 h-14 md:w-20 md:h-20 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg border-4 border-[#2D3047] transform group-hover:scale-110 transition-transform"
+                      style={{ backgroundColor: step.color }}
+                    >
+                      {step.icon}
+                    </div>
+                    <h3 className="text-2xl md:text-4xl font-black text-[#2D3047] uppercase tracking-tighter mb-3 leading-none">
+                      {step.title}
+                    </h3>
+                    <p className="text-slate-600 text-sm md:text-lg font-bold leading-snug">
+                      {step.desc}
+                    </p>
+                    
+                    {/* Number Badge */}
+                    <div className="absolute -top-4 -right-4 md:-top-8 md:-right-8 w-12 h-12 md:w-16 md:h-16 bg-pink-500 text-white rounded-full flex items-center justify-center font-black text-lg md:text-2xl border-4 border-[#2D3047] shadow-lg">
+                      {i + 1}
+                    </div>
                   </div>
-                  
-                  <div className="inline-block px-4 py-1 rounded-full bg-slate-100 text-[#073B4C] text-[10px] font-black uppercase tracking-widest mb-4">
-                    {step.tag}
-                  </div>
-                  
-                  <h2 className="text-4xl font-[1000] text-[#073B4C] uppercase tracking-tighter mb-4">
-                    {step.title}
-                  </h2>
-                  
-                  <p className="text-lg text-slate-500 font-bold leading-snug">
-                    {step.desc}
-                  </p>
                 </div>
 
-                {/* Checklist Footer */}
-                <div className="mt-10 pt-8 border-t-2 border-slate-50 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[#06D6A0] font-bold text-sm">
-                    <CheckCircle2 size={18} /> Step Verified
-                  </div>
-                  <div className="text-[#073B4C]/20 font-black text-2xl uppercase tracking-tighter">
-                    {step.id}
-                  </div>
+                {/* Path Dot */}
+                <div className="absolute left-[24px] md:left-1/2 -translate-x-1/2 w-6 h-6 md:w-8 md:h-8 bg-white border-[4px] md:border-[6px] border-[#2D3047] rounded-full z-20">
+                    <div className="absolute inset-0 rounded-full bg-pink-400 animate-ping opacity-20" />
                 </div>
-              </div>
-            </motion.div>
-          ))}
+
+                <div className="hidden md:block w-[48%]" />
+              </motion.div>
+            ))}
+          </div>
         </div>
 
-        {/* Massive Call to Action */}
-        <motion.div 
-          initial={{ y: 100, opacity: 0 }}
-          whileInView={{ y: 0, opacity: 1 }}
-          className="mt-32 relative group"
-        >
-          <div className="absolute inset-0 bg-[#EF476F] rounded-[4rem] translate-y-4" />
-          
-          <button 
-            onClick={() => router.push("/story")}
-            className="relative w-full bg-[#073B4C] border-[8px] border-white rounded-[4rem] p-12 md:p-20 overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 group"
-          >
-            {/* Animated Glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
-            
-            <div className="text-left">
-              <h2 className="text-5xl md:text-7xl font-[1000] text-white uppercase tracking-tighter leading-none mb-4">
-                Ready to Ignite <br /> the <span className="text-[#06D6A0]">Genie?</span>
-              </h2>
-              <p className="text-white/60 font-bold text-xl uppercase tracking-[0.2em]">
-                Takes only 2 minutes to generate
-              </p>
-            </div>
+   {/* 🚀 ULTIMATE CALL TO ACTION */}
+<section className="mt-20 pb-32 text-center px-4">
+  <motion.div
+    initial={{ scale: 0.9, opacity: 0 }}
+    whileInView={{ scale: 1, opacity: 1 }}
+    className="bg-[#F8FAFF] border-[4px] border-[#2D3047] rounded-[3rem] p-8 md:p-16 shadow-[12px_12px_0px_#2D3047] max-w-4xl mx-auto"
+  >
+    <h2 className="text-4xl md:text-6xl font-[1000] text-[#2D3047] uppercase tracking-tighter mb-12 leading-none">
+      Ready for <br className="md:hidden" /> Your Adventure?
+    </h2>
+    
+    <motion.button 
+      whileHover={{ scale: 1.05, rotate: "1deg" }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => router.push("/story")}
+      /* FORCING COLORS HERE: 
+         We use style={{...}} to guarantee background and text colors 
+      */
+      style={{ 
+        backgroundColor: '#2D3047', 
+        color: '#FFFFFF',
+        display: 'inline-flex',
+        alignItems: 'center'
+      }}
+      className="group relative gap-4 md:gap-6 px-10 py-6 md:px-16 md:py-10 rounded-[2rem] font-black text-2xl md:text-4xl uppercase tracking-tighter shadow-2xl border-b-[10px] border-black transition-all"
+    >
+      <span className="relative z-10">Start The Magic</span>
+      <Rocket className="relative z-10 w-8 h-8 md:w-12 md:h-12 text-pink-400 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform duration-500" />
+      
+      {/* Shimmer overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
+    </motion.button>
+    
+    {/* 🏷️ BADGES: These are looking good based on your screenshot, but let's sharpen them */}
+    <div className="mt-16 flex flex-wrap justify-center gap-4">
+       {[
+         { icon: <Zap size={18} fill="#FFD670" />, text: "2 Minute Build", bg: "bg-[#FFF9E5]" },
+         { icon: <Star size={18} fill="#4CC9F0" />, text: "Premium Quality", bg: "bg-[#E5F9FF]" },
+         { icon: <Heart size={18} fill="#FF70A6" />, text: "Kids Love It", bg: "bg-[#FFE5F0]" }
+       ].map((badge, bIdx) => (
+         <div 
+            key={bIdx} 
+            className={`flex items-center gap-2 px-6 py-3 ${badge.bg} text-[#2D3047] rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest border-[3px] border-[#2D3047] shadow-[5px_5px_0px_#2D3047]`}
+         >
+            {badge.icon} 
+            <span>{badge.text}</span>
+         </div>
+       ))}
+    </div>
+  </motion.div>
+</section>
 
-            <div className="bg-[#EF476F] p-8 rounded-full border-4 border-white shadow-2xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-              <ArrowRight size={48} className="text-white" />
-            </div>
-          </button>
-        </motion.div>
-
-        {/* Quality Guarantees */}
-        <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[
-            { label: "AI Precision", val: "99.9%" },
-            { label: "Paper Quality", val: "220 GSM" },
-            { label: "Fast Delivery", val: "48 Hours" },
-            { label: "Magic Factor", val: "Infinite" }
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="text-4xl font-[1000] text-[#073B4C] uppercase leading-none">{stat.val}</p>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{stat.label}</p>
-            </div>
-          ))}
-        </div>
       </div>
 
       <style jsx global>{`
-        @keyframes shimmer {
-          100% { transform: translateX(100%); }
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&display=swap');
+        
+        body {
+          font-family: 'Fredoka', sans-serif;
+          background-color: #FFFBF5;
+          color: #2D3047;
+        }
+
+        /* Smooth scroll behavior */
+        html {
+          scroll-behavior: smooth;
         }
       `}</style>
     </div>

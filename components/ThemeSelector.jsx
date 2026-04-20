@@ -1,207 +1,150 @@
 "use client";
-
-import React, { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import React, { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Mountain, TentTree, Rocket, Ghost, Waves, Sparkles, 
-  Orbit, Palmtree, Shell, Zap, Star, Cloud 
+  Sparkles, Book, Rocket, Heart, 
+  Palette, Globe, Coffee, GraduationCap,
+  ChevronRight, Star, Wand2
 } from "lucide-react";
 
-const themes = [
-  {
-    title: "Dino Jungle",
-    icon: <TentTree className="w-12 h-12" />,
-    color: "bg-emerald-400",
-    shadow: "shadow-[0_15px_0_#059669]",
-    rotate: "-3deg",
-    delay: 0.1
-  },
-  {
-    title: "Space Cadet",
-    icon: <Rocket className="w-12 h-12" />,
-    color: "bg-indigo-500",
-    shadow: "shadow-[0_15px_0_#4338ca]",
-    rotate: "2deg",
-    delay: 0.2
-  },
-  {
-    title: "Deep Sea",
-    icon: <Waves className="w-12 h-12" />,
-    color: "bg-cyan-400",
-    shadow: "shadow-[0_15px_0_#0891b2]",
-    rotate: "-2deg",
-    delay: 0.3
-  },
-  {
-    title: "Magic Castle",
-    icon: <Sparkles className="w-12 h-12" />,
-    color: "bg-pink-500",
-    shadow: "shadow-[0_15px_0_#be185d]",
-    rotate: "4deg",
-    delay: 0.4
-  }
-];
+const THEME_DATA = {
+  "Educational": { icon: <GraduationCap />, color: "bg-amber-400", border: "border-amber-500", subjects: ["Solar System Adventure", "Deep Sea Creatures", "How Tiny Seeds Grow", "The Human Body Secret", "Numbers in the Jungle", "History of Dinosaurs"] },
+  "Fairy Tales": { icon: <Wand2 />, color: "bg-pink-400", border: "border-pink-500", subjects: ["The Crystal Palace", "A Dragon's First Breath", "The Midnight Ball", "Talking Forest Animals", "Secret of the Moon Fairy"] },
+  "Adventure": { icon: <Rocket />, color: "bg-indigo-500", border: "border-indigo-600", subjects: ["Lost in the Candy Clouds", "Desert Island Treasure", "Mountain of Miracles", "The Flying Treehouse", "Mission to Mars"] },
+  "Activities": { icon: <Palette />, color: "bg-orange-400", border: "border-orange-500", subjects: ["Grandma's Magic Kitchen", "The Backyard Campout", "Building a Robot Friend", "A Rainy Day Parade"] },
+  "Worlds": { icon: <Globe />, color: "bg-emerald-400", border: "border-emerald-500", subjects: ["The Underwater Kingdom", "City of Floating Bubbles", "Land of Giant Toys", "The Planet of Sweets"] },
+  "Family": { icon: <Heart />, color: "bg-rose-400", border: "border-rose-500", subjects: ["A Day with Superhero Dad", "Mom's Magic Garden", "The Big Family Picnic", "Going to Grandpa's Farm"] },
+};
 
 export default function ThemeSelector() {
-  const containerRef = useRef(null);
+  const [activeCat, setActiveCat] = useState("Educational");
+  const [hoveredSubject, setHoveredSubject] = useState(null);
 
   return (
-    <section ref={containerRef} className="relative py-32 px-6 bg-[#F8FAFF] overflow-hidden min-h-screen flex flex-col justify-center">
+    <section className="relative min-h-screen py-24 px-4 bg-[#FFF9FE] overflow-hidden">
       
-      {/* 🎈 FLOATING DECORATIVE ELEMENTS (LEFT & RIGHT) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Left Side Stickers */}
-        <FloatingSticker Icon={Palmtree} color="text-emerald-200" top="15%" left="5%" rotate="-15deg" delay={0} />
-        <FloatingSticker Icon={Orbit} color="text-indigo-200" top="45%" left="2%" rotate="10deg" delay={1} />
-        <FloatingSticker Icon={Star} color="text-yellow-200" top="75%" left="8%" rotate="-5deg" delay={0.5} />
-
-        {/* Right Side Stickers */}
-        <FloatingSticker Icon={Cloud} color="text-blue-200" top="10%" right="5%" rotate="10deg" delay={1.5} />
-        <FloatingSticker Icon={Shell} color="text-cyan-200" top="50%" right="3%" rotate="-20deg" delay={0.2} />
-        <FloatingSticker Icon={Zap} color="text-pink-200" top="80%" right="7%" rotate="15deg" delay={0.8} />
+      {/* 🌌 Background Magic Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], rotate: 360 }}
+          transition={{ duration: 20, repeat: Infinity }}
+          className="absolute -top-24 -left-24 w-96 h-96 bg-pink-100 rounded-full blur-[100px]" 
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.3, 1], x: [0, 50, 0] }}
+          transition={{ duration: 15, repeat: Infinity }}
+          className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-100 rounded-full blur-[120px]" 
+        />
       </div>
 
-      {/* 🌌 Ambient Background Glows */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-100 rounded-full blur-[140px] opacity-40" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-100 rounded-full blur-[140px] opacity-40" />
-      </div>
-
-      <div className="max-w-7xl mx-auto relative z-10 w-full">
+      <div className="max-w-7xl mx-auto relative z-10">
         
-        {/* Section Header */}
-        <div className="text-center mb-24 relative">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            className="absolute -top-12 left-1/2 -translate-x-1/2 text-yellow-400"
-          >
-            <Sparkles size={48} className="animate-pulse" />
-          </motion.div>
-
+        {/* Header Text */}
+        <div className="text-center mb-16">
           <motion.h2 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="text-6xl md:text-[9rem] font-[1000] text-slate-900 tracking-tighter uppercase italic leading-[0.8] mb-4"
+            initial={{ y: 30, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            className="text-5xl md:text-8xl font-[1000] text-slate-900 tracking-tighter uppercase italic leading-none mb-6"
           >
-            Choose <br/>
-            <span className="bg-clip-text text-transparent bg-gradient-to-b from-indigo-400 to-indigo-700 drop-shadow-xl">Your Story</span>
+            Pick Your <br/>
+            <span className="text-pink-500 drop-shadow-[0_5px_0_#db2777]">Magic Door</span>
           </motion.h2>
-          
-          <div className="flex items-center justify-center gap-4">
-            <div className="h-[2px] w-12 bg-slate-200" />
-            <p className="text-xl font-black text-slate-400 uppercase tracking-[0.3em]">
-              The Adventure Starts Here
-            </p>
-            <div className="h-[2px] w-12 bg-slate-200" />
-          </div>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Where will we go today?</p>
         </div>
 
-        {/* 3D Grid Layout */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 perspective-2000">
-          {themes.map((theme, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: theme.delay, duration: 0.6 }}
-              whileHover={{ 
-                scale: 1.05, 
-                rotateY: 15, 
-                rotateX: -10,
-                transition: { type: "spring", stiffness: 300 } 
-              }}
+        {/* 🏷️ CATEGORY TABS (Scrollable on mobile) */}
+        <div className="flex flex-wrap justify-center gap-3 mb-12">
+          {Object.entries(THEME_DATA).map(([name, data]) => (
+            <motion.button
+              key={name}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveCat(name)}
               className={`
-                relative h-[420px] ${theme.color} ${theme.shadow} 
-                rounded-[4rem] border-[12px] border-white 
-                flex flex-col items-center justify-center p-8 
-                cursor-pointer group select-none
-                transform-gpu preserve-3d
+                flex items-center gap-2 px-6 py-4 rounded-3xl font-black text-sm uppercase tracking-wider transition-all border-b-4
+                ${activeCat === name 
+                  ? `${data.color} text-white ${data.border.replace('border-', 'border-b-')} shadow-lg` 
+                  : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"}
               `}
-              style={{ rotate: theme.rotate }}
             >
-              {/* Backglow effect on hover */}
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 blur-2xl transition-opacity rounded-[4rem]" />
-
-              {/* Floating Icon with extra 3D pop */}
-              <div className="relative bg-white/20 p-8 rounded-[2.5rem] backdrop-blur-sm border-2 border-white/40 group-hover:translate-z-20 group-hover:scale-110 transition-all duration-500 shadow-2xl">
-                <div className="text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.2)]">
-                  {React.cloneElement(theme.icon, { size: 64 })}
-                </div>
-              </div>
-
-              <h3 className="mt-10 text-3xl font-[1000] text-white tracking-tighter uppercase text-center drop-shadow-[0_5px_0_rgba(0,0,0,0.1)]">
-                {theme.title}
-              </h3>
-
-              <div className="mt-4 flex gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                {[...Array(5)].map((_, star) => (
-                  <Star key={star} size={12} className="fill-white text-white" />
-                ))}
-              </div>
-
-              {/* "Select" Sticker */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 0, rotate: -20 }}
-                whileHover={{ opacity: 1, scale: 1, rotate: 12 }}
-                className="absolute -bottom-4 bg-yellow-400 text-slate-900 font-black px-8 py-3 rounded-2xl border-[6px] border-white shadow-2xl z-20"
-              >
-                LET'S GO! 🚀
-              </motion.div>
-            </motion.div>
+              {React.cloneElement(data.icon, { size: 20 })}
+              {name}
+            </motion.button>
           ))}
         </div>
 
-        {/* Interactive "Surprise" Button */}
-        <div className="mt-28 text-center relative">
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="group relative px-20 py-10 bg-slate-900 text-white rounded-[3rem] font-[1000] text-3xl tracking-[0.2em] shadow-[0_15px_0_#1e293b] hover:shadow-[0_20px_0_#1e293b] hover:-translate-y-2 active:translate-y-4 active:shadow-none transition-all overflow-hidden"
+        {/* 🃏 SUBJECTS DISPLAY AREA */}
+        <div className="relative min-h-[500px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeCat}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {THEME_DATA[activeCat].subjects.map((subject, idx) => (
+                <ThemeCard 
+                  key={subject} 
+                  title={subject} 
+                  color={THEME_DATA[activeCat].color} 
+                  index={idx}
+                />
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* 🎲 Surprise Footer */}
+        <div className="mt-20 flex flex-col items-center">
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 2 }}
+            whileTap={{ scale: 0.9 }}
+            className="px-10 py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xl flex items-center gap-4 shadow-[0_10px_0_#000] active:translate-y-2 active:shadow-none transition-all"
           >
-            <span className="relative z-10 flex items-center gap-6">
-              SURPRISE ME! 🎲
-            </span>
-            {/* Shimmer Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+            RANDOM ADVENTURE 🎲
           </motion.button>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes shimmer {
-          100% { transform: translateX(100%); }
-        }
-        .perspective-2000 {
-          perspective: 2000px;
-        }
-        .preserve-3d {
-          transform-style: preserve-3d;
-        }
-      `}</style>
     </section>
   );
 }
 
-function FloatingSticker({ Icon, color, top, left, right, rotate, delay }) {
+function ThemeCard({ title, color, index }) {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      animate={{ 
-        y: [0, -20, 0],
-        rotate: [rotate, (parseInt(rotate) + 10) + 'deg', rotate] 
-      }}
-      transition={{ 
-        duration: 4, 
-        repeat: Infinity, 
-        delay: delay,
-        ease: "easeInOut" 
-      }}
-      className={`absolute ${color} pointer-events-none opacity-40`}
-      style={{ top, left, right }}
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      whileHover={{ y: -10, rotate: index % 2 === 0 ? 1 : -1 }}
+      className="group cursor-pointer"
     >
-      <Icon size={120} strokeWidth={1} />
+      <div className={`relative p-8 h-48 bg-white rounded-[2.5rem] border-4 border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col justify-between overflow-hidden transition-all group-hover:border-pink-300`}>
+        
+        {/* Background Accent */}
+        <div className={`absolute -right-8 -top-8 w-24 h-24 ${color} opacity-10 rounded-full group-hover:scale-150 transition-transform duration-500`} />
+        
+        <div className="relative z-10">
+          <div className={`w-12 h-12 ${color} rounded-2xl mb-4 flex items-center justify-center text-white shadow-lg`}>
+            <Sparkles size={24} />
+          </div>
+          <h4 className="text-xl font-[1000] text-slate-800 leading-tight">
+            {title}
+          </h4>
+        </div>
+
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex gap-1">
+             {[...Array(3)].map((_, i) => <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />)}
+          </div>
+          <motion.div 
+            whileHover={{ x: 5 }}
+            className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-pink-500 group-hover:text-white transition-colors"
+          >
+            <ChevronRight size={20} />
+          </motion.div>
+        </div>
+      </div>
     </motion.div>
   );
 }
