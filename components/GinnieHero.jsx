@@ -4,8 +4,7 @@ import { gsap } from "gsap";
 import { motion } from "framer-motion";
 import { 
   Wand2, Sparkles, Star, Rocket, 
-  ArrowRight, ShieldCheck, Play, 
-  Plus, Camera, Heart
+  ShieldCheck, Play, Heart
 } from "lucide-react";
 import Link from "next/link";
 
@@ -43,10 +42,10 @@ const GinnieHero = () => {
   }, []);
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-[#FFF5F7] flex font-sans">
+    <div className="relative min-h-screen lg:h-screen w-full overflow-x-hidden bg-[#FFF5F7] flex font-sans">
       
-      {/* 🎭 THE PINK SILK CURTAINS */}
-      <div className="absolute inset-0 z-[100] flex pointer-events-none">
+      {/* 🎭 FIXED CURTAINS */}
+      <div className="fixed inset-0 z-[100] flex pointer-events-none">
         <div ref={leftCurtainRef} className="w-1/2 h-full bg-[#FF4D91] border-r border-white/20 shadow-2xl relative">
              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_#fff_1px,_transparent_1px)] bg-[size:20px_20px]" />
         </div>
@@ -55,45 +54,45 @@ const GinnieHero = () => {
         </div>
       </div>
 
-      {/* 🌌 DREAMY PINK GRADIENT BACKGROUND */}
+      {/* 🌌 BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_#FFDDEE_0%,_#FFF5F7_100%)]" />
-        <div className="absolute top-[5%] right-[10%] w-[600px] h-[600px] bg-pink-300/30 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[5%] left-[5%] w-[500px] h-[500px] bg-orange-200/20 rounded-full blur-[100px]" />
       </div>
 
       {/* 🧊 CONTENT CONTAINER */}
-      <div className="relative z-20 w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center h-full px-6 md:px-12">
+      <div className="relative z-20 w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center h-full px-6 pt-12 pb-20 lg:py-0 lg:px-12">
         
-        {/* LEFT: PINK INFO PANEL */}
-        <div className="w-full lg:w-1/2 flex flex-col justify-center space-y-8 py-12">
-          <div className="content-stagger">
-            <span className="px-4 py-1.5 rounded-full bg-white border border-pink-100 text-pink-500 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm">
+        {/* LEFT: INFO PANEL */}
+        <div className="w-full lg:w-1/2 flex flex-col justify-center items-center lg:items-start text-center lg:text-left space-y-4 sm:space-y-6 lg:space-y-8 z-30">
+          
+          {/* FIXED: Added mt-8 for mobile to push it below the notch/browser bar */}
+          <div className="content-stagger mt-16 lg:mt-0">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-white border border-pink-100 text-pink-500 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] shadow-sm">
               💖 Your child, our hero
             </span>
           </div>
 
-          <h1 className="content-stagger text-[4.5rem] md:text-[6.5rem] font-black leading-[0.85] tracking-tighter text-slate-800">
+          <h1 className="content-stagger text-[3.2rem] sm:text-[4.5rem] md:text-[6.5rem] font-black leading-[0.9] tracking-tighter text-slate-800">
             Ginnie<br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF4D91] via-[#FF7EB3] to-[#FFB7D5]">
               Tales.
             </span>
           </h1>
 
-          <p className="content-stagger text-lg md:text-xl text-slate-500 font-medium max-w-lg leading-relaxed">
+          <p className="content-stagger text-sm sm:text-base md:text-xl text-slate-500 font-medium max-w-lg leading-relaxed px-2 lg:px-0">
             Create magical bedtime memories. <span className="text-pink-600 font-bold underline decoration-pink-200 decoration-4">The first AI storybook</span> that turns photos into fairytale adventures.
           </p>
 
-          <div className="content-stagger flex flex-wrap gap-4 pt-4">
-          <Link href="/story">
-  <button className="group relative px-8 py-4 bg-[#FF4D91] text-white rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-pink-200 hover:bg-[#E63E7D]">
-    <span className="flex items-center gap-2 text-lg">
-      Start Magic <Wand2 size={20} className="animate-sparkle" />
-    </span>
-  </button>
-</Link>
+          <div className="content-stagger flex flex-col sm:flex-row items-center gap-4 pt-2 w-full sm:w-auto">
+            <Link href="/story" className="w-full sm:w-auto">
+              <button className="w-full group relative px-8 py-4 bg-[#FF4D91] text-white rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-pink-200 hover:bg-[#E63E7D]">
+                <span className="flex items-center justify-center gap-2 text-lg">
+                  Start Magic <Wand2 size={20} className="animate-sparkle" />
+                </span>
+              </button>
+            </Link>
             
-            <button className="px-8 py-4 bg-white hover:bg-pink-50 border-2 border-pink-100 text-pink-500 rounded-2xl font-bold transition-all flex items-center gap-3 shadow-sm">
+            <button className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-pink-50 border-2 border-pink-100 text-pink-500 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-sm">
               <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center">
                 <Play size={12} className="fill-pink-500 text-pink-500 ml-0.5" />
               </div>
@@ -101,59 +100,55 @@ const GinnieHero = () => {
             </button>
           </div>
 
-          {/* Social Proof */}
-          <div className="content-stagger pt-10 flex items-center gap-4">
+          <div className="content-stagger pt-4 lg:pt-10 flex flex-col sm:flex-row items-center gap-4">
             <div className="flex -space-x-3">
               {[1,2,3].map(i => (
-                <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-pink-100 flex items-center justify-center overflow-hidden shadow-md">
+                <div key={i} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white bg-pink-100 flex items-center justify-center overflow-hidden shadow-md">
                   <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i+123}`} alt="avatar" />
                 </div>
               ))}
             </div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            <p className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">
               Joined by <span className="text-pink-500">12k+ Happy Families</span>
             </p>
           </div>
         </div>
 
-        {/* RIGHT: THE PINK STAGE */}
-        <div className="w-full lg:w-1/2 h-full relative flex items-center justify-center">
+        {/* RIGHT: THE STAGE (Genie) */}
+        <div className="w-full lg:w-1/2 mt-10 lg:mt-0 flex items-center justify-center relative">
           
-          {/* Main Character: Genie */}
-          <div className="genie-center relative z-20">
+          <div className="genie-center relative z-20 w-full flex justify-center">
             <motion.div
-              animate={{ y: [0, -25, 0] }}
+              className="relative w-[65%] sm:w-[50%] lg:w-full max-w-[420px]"
+              animate={{ y: [0, -15, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             >
               <img 
                 src="/genie.png" 
                 alt="Genie" 
-                className="w-[300px] md:w-[450px] drop-shadow-[0_20px_60px_rgba(255,77,145,0.2)]"
+                className="w-full h-auto drop-shadow-[0_20px_60px_rgba(255,77,145,0.2)] object-contain"
               />
+              
+              <motion.div 
+                animate={{ y: [5, -5, 5], rotate: [-5, -8, -5] }}
+                transition={{ duration: 6, repeat: Infinity }}
+                className="absolute -bottom-6 -left-6 sm:left-0 z-30 p-2 sm:p-4 bg-white/90 backdrop-blur-md border border-pink-100 rounded-2xl shadow-xl flex items-center gap-2 sm:gap-3 min-w-[120px] sm:min-w-[140px]"
+              >
+                <div className="w-7 h-7 sm:w-10 sm:h-10 bg-[#FF4D91] rounded-full flex items-center justify-center text-white shadow-lg">
+                  <ShieldCheck size={18} />
+                </div>
+                <div className="leading-tight text-left">
+                  <p className="text-[7px] sm:text-[8px] font-black text-pink-400 uppercase">Child Safety</p>
+                  <p className="text-[9px] sm:text-xs font-bold text-slate-700">100% Safe AI</p>
+                </div>
+              </motion.div>
             </motion.div>
           </div>
 
-          {/* Floating UI Elements */}
-          <motion.div 
-            animate={{ y: [10, -10, 10], rotate: [-5, -8, -5] }}
-            transition={{ duration: 6, repeat: Infinity }}
-            className="content-stagger absolute bottom-[15%] left-0 md:left-[5%] z-30 p-4 bg-white/80 backdrop-blur-md border border-pink-100 rounded-2xl shadow-xl flex items-center gap-3"
-          >
-            <div className="w-10 h-10 bg-[#FF4D91] rounded-full flex items-center justify-center text-white shadow-lg shadow-pink-200">
-              <ShieldCheck size={24} />
-            </div>
-            <div className="leading-tight">
-              <p className="text-[10px] font-black text-pink-400 uppercase">Child Safety</p>
-              <p className="text-xs font-bold text-slate-700">100% Safe AI</p>
-            </div>
-          </motion.div>
-
-          {/* Background Decor */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <Star className="content-stagger absolute top-[20%] left-[10%] text-yellow-400 fill-yellow-400 opacity-40 animate-pulse" size={32} />
-            <Heart className="content-stagger absolute bottom-[25%] right-[10%] text-pink-300 fill-pink-300 opacity-40" size={48} />
-            <Rocket className="content-stagger absolute top-[15%] right-[20%] text-orange-300 opacity-30 -rotate-12" size={56} />
-            <Sparkles className="content-stagger absolute top-1/2 right-1/4 text-pink-400 opacity-30" size={24} />
+          <div className="absolute inset-0 pointer-events-none hidden sm:block">
+            <Star className="content-stagger absolute top-[10%] left-[10%] text-yellow-400 fill-yellow-400 opacity-30 animate-pulse" size={24} />
+            <Heart className="content-stagger absolute bottom-[15%] right-[5%] text-pink-300 fill-pink-300 opacity-30" size={32} />
+            <Rocket className="content-stagger absolute top-[5%] right-[10%] text-orange-300 opacity-20 -rotate-12" size={32} />
           </div>
 
         </div>
