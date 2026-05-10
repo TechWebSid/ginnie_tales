@@ -95,7 +95,7 @@ export default function StoryGenerator() {
       
       setOutput({ pages: allPages, images: finalImages, title: config.subject });
 
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 3; i++) {
         setLoadingStage(`✨ Creating Page ${i + 1}...`);
         setProgress(i + 1);
         const imgRes = await fetch("/api/genie", {
@@ -136,8 +136,8 @@ export default function StoryGenerator() {
     const updatedImages = [...output.images];
 
     try {
-      for (let i = 2; i < output.pages.length; i++) {
-        setLoadingStage(`🎨 Painting Page ${i + 1}...`);
+      for (let i = 3; i < output.pages.length; i++) {
+        setLoadingStage(`🎨 Painting Page ${i + 1} of 25...`);
         setProgress(i + 1);
         
         abortControllerRef.current = new AbortController();

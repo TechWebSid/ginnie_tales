@@ -138,22 +138,30 @@ export default function Book({
           .img-container { width: 50%; height: 100%; border-right: 10px solid white; overflow: hidden; }
           .img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
           
-  .text-container { 
-  width: 50%; 
-  padding: 100px 70px; /* More padding on sides, less on top to fill vertically */
-  background: #FFFCF9 !important; 
-  display: flex; 
-  align-items: center; /* Vertically centers the larger text block */
-  box-sizing: border-box;
-}
-
-.story-text { 
-  font-size: 34px; /* Increased font size */
+ .story-text { 
+  font-size: 34px; 
   line-height: 1.5; 
   font-weight: 700; 
   margin: 0; 
-  text-align: justify; /* Justified text looks more "full" and professional */
+  
+  /* FIXED: Spacing issue solve karne ke liye left align best hai */
+  text-align: left; 
+  
+  /* Optional: Agar justify hi chahiye toh ye line use karein but better go with left */
+  /* text-align: justify; text-justify: inter-word; hyphens: auto; */
+  
   color: #1A365D;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Page container mein padding ensure karein taaki text border se na chipke */
+.text-container { 
+  width: 50%; 
+  padding: 80px 60px; 
+  display: flex; 
+  align-items: center; 
+  box-sizing: border-box;
 }
 
 /* Add a subtle border frame inside the page */

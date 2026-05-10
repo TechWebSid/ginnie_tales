@@ -34,23 +34,22 @@ export async function POST(req) {
     const imageDataUrl = imageBase64?.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`;
 
     // --- MODE: TEXT GENERATION (Gemini) ---
-    if (mode === "generateText") {
-      console.log("Starting Step: Story Writing (Gemini)...");
-      await delay(500); // Rate limit protection
-const prompt = `
-  You are an elite children's book author. Write a 4-page story for a ${ageGroup} old child named "${kidName}".
-  THEME: ${theme}
-  SUBJECT: ${subject}
+if (mode === "generateText") {
+  console.log("Starting Step: 25-Page Story Writing...");
   
-  STRICT RULES:
-  - EXACTLY 4 pages.
-  - Each page MUST be between 40 to 50 words. No more, no less.
-  - This ensures the text fits perfectly on a physical book page without scrolling.
-  - Use simple, rhythmic language.
-  
-  RETURN ONLY JSON:
-  { "pages": ["...", "...", "...", "..."] }
-`;
+  const prompt = `
+    You are an award-winning children's book author. Write a detailed 25-page story for a ${ageGroup} old child named "${kidName}".
+    THEME: ${theme}
+    SUBJECT: ${subject}
+    
+    STRICT STRUCTURE:
+    - Exactly 25 pages.
+    - Each page MUST be a single paragraph of 40-50 words.
+    - The story must have a clear beginning (Pages 1-5), rising action (6-15), climax (16-20), and a heartwarming ending (21-25).
+    
+    RETURN ONLY JSON:
+    { "pages": ["page 1 text...", "page 2 text...", ... "page 25 text..."] }
+  `;
 
       const output = await replicate.run("google/gemini-2.5-flash", { input: { images: [imageDataUrl], prompt } });
       console.log("Gemini raw output received.");
