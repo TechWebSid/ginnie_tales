@@ -138,23 +138,32 @@ export default function Book({
           .img-container { width: 50%; height: 100%; border-right: 10px solid white; overflow: hidden; }
           .img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
           
-          .text-container { 
-            width: 50%; 
-            padding: 60px; 
-            background: #FFFCF9 !important; 
-            display: flex; 
-            align-items: center; 
-            box-sizing: border-box;
-          }
+  .text-container { 
+  width: 50%; 
+  padding: 100px 70px; /* More padding on sides, less on top to fill vertically */
+  background: #FFFCF9 !important; 
+  display: flex; 
+  align-items: center; /* Vertically centers the larger text block */
+  box-sizing: border-box;
+}
 
-          .story-text { 
-            font-size: 38px; 
-            line-height: 1.4; 
-            font-weight: 800; 
-            letter-spacing: -1px; 
-            margin: 0; 
-            text-align: left;
-          }
+.story-text { 
+  font-size: 34px; /* Increased font size */
+  line-height: 1.5; 
+  font-weight: 700; 
+  margin: 0; 
+  text-align: justify; /* Justified text looks more "full" and professional */
+  color: #1A365D;
+}
+
+/* Add a subtle border frame inside the page */
+.page::after {
+  content: "";
+  position: absolute;
+  inset: 30px;
+  border: 1px solid rgba(0,0,0,0.05);
+  pointer-events: none;
+}
 
           .story-text::first-letter { 
             color: #EF476F !important; 
@@ -323,7 +332,7 @@ return (
             <div className="absolute inset-0 flex flex-col items-center justify-end pb-10 px-6 text-center z-20">
                 <h1 className="text-2xl md:text-3xl font-[1000] text-[#FFD166] italic uppercase leading-tight tracking-tight mb-2">A MAGICAL STORY INSIDE</h1>
                 <div className="text-[#06D6A0] font-black italic text-sm tracking-widest mb-1 uppercase">Crafted by GinnieTales ✨</div>
-                <div className="text-white/60 font-bold text-[8px] tracking-[0.2em] uppercase">Order your storybook at GinnieTales.com</div>
+                <div className="text-white/60 font-bold text-[8px] tracking-[0.2em] uppercase">Order your storybook at GinnieTales.story</div>
                 <div className="mt-6 text-white/40 text-[10px] font-black tracking-widest animate-pulse uppercase">Tap to Read</div>
             </div>
           </motion.div>
@@ -354,22 +363,72 @@ return (
                 </div>
               )}
             </div>
+<div className="w-full lg:w-1/2 h-[450px] lg:h-[650px] flex flex-col bg-[#FFFCF9] p-10 lg:p-16 relative overflow-hidden">
+  
+  {/* --- REAL BOOK AESTHETICS --- */}
+  {/* Top Border Line */}
+  <div className="absolute inset-x-12 top-10 h-[1.5px] bg-gradient-to-r from-transparent via-[#073B4C]/15 to-transparent" />
+  
+  {/* Spine Crease (Inner Shadow) */}
+  <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black/5 via-black/[0.02] to-transparent pointer-events-none" />
 
-            <div className="w-full lg:w-1/2 h-[400px] lg:h-[650px] flex flex-col bg-[#FFFCF9] p-8 lg:p-16 relative">
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <p className={`${isLockedPage ? 'blur-md opacity-20' : ''} text-lg lg:text-xl font-bold text-[#073B4C] leading-[1.8] first-letter:text-7xl first-letter:font-[1000] first-letter:text-[#EF476F] first-letter:mr-3 first-letter:float-left first-letter:leading-[0.8] pt-2`}>
-                  {pages[pageIndex]}
-                </p>
-              </div>
-              <div className="mt-8 border-t-4 border-[#F1FAEE] pt-6 flex justify-between items-center">
-                  <span className="font-[1000] text-[10px] text-[#118AB2] uppercase tracking-widest">Page {pageIndex + 1} / {pages.length}</span>
-                  <div className="flex gap-1.5">
-                    {Array.from({ length: Math.min(pages.length, 10) }).map((_, i) => (
-                      <div key={i} className={`h-2 rounded-full transition-all duration-500 ${pageIndex % 10 === i ? 'bg-[#EF476F] w-6' : 'bg-[#06D6A0]/20 w-2'}`} />
-                    ))}
-                  </div>
-              </div>
-            </div>
+  {/* --- NO-SCROLL STORY AREA --- */}
+  {/* We use flex-1 and items-center to keep the story perfectly centered vertically */}
+  <div className="flex-1 flex items-center justify-center relative z-10">
+    <div className="w-full max-h-full overflow-hidden"> 
+      {/* Scrollbar removed, overflow hidden to force "Real Book" constraints */}
+      <p className={`
+        ${isLockedPage ? 'blur-md opacity-20' : ''} 
+        text-xl lg:text-[1.6rem] font-bold text-[#073B4C] leading-[1.7] 
+        text-left transition-all duration-500
+        first-letter:text-8xl first-letter:font-[1000] first-letter:text-[#EF476F] 
+        first-letter:mr-4 first-letter:float-left first-letter:leading-[0.7] 
+        first-letter:mt-2
+      `}>
+        {pages[pageIndex]}
+      </p>
+    </div>
+  </div>
+
+  {/* --- FOOTER AREA --- */}
+  <div className="mt-auto pt-8 relative">
+    {/* Bottom Border Line */}
+    <div className="absolute inset-x-12 -top-4 h-[1.5px] bg-gradient-to-r from-transparent via-[#073B4C]/15 to-transparent" />
+    
+    <div className="flex justify-between items-end">
+      <div className="flex flex-col">
+        <span className="font-[1000] text-[10px] text-[#118AB2] uppercase tracking-[0.3em] mb-1">
+          Chapter
+        </span>
+        <div className="flex items-baseline gap-1">
+          <span className="font-black text-3xl text-[#073B4C] leading-none">
+            {pageIndex + 1}
+          </span>
+          <span className="font-bold text-sm text-slate-300 uppercase">
+            / {pages.length}
+          </span>
+        </div>
+      </div>
+
+      {/* Progress Pill Indicators */}
+      <div className="flex gap-2 mb-1">
+        {pages.map((_, i) => (
+          <div 
+            key={i} 
+            className={`transition-all duration-500 rounded-full h-2 ${
+              pageIndex === i 
+                ? 'bg-[#EF476F] w-10 shadow-[0_4px_12px_rgba(239,71,111,0.3)]' 
+                : 'bg-[#06D6A0]/20 w-3'
+            }`} 
+          />
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* Subtle Page Texture Overlay */}
+  <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]" />
+</div>
           </motion.div>
         )}
 
