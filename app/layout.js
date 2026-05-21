@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import MagicalCursor from "@/components/MagicalCursor";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +26,7 @@ export default function RootLayout({ children }) {
       suppressHydrationWarning // 👈 Yahan add karo
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning> 
-        <MagicalCursor/>
+    
         <Navbar/>
         <main className="flex-1">{children}</main> {/* flex-1 ensures it pushes footer down if any */}
       </body>
