@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Sparkles, ArrowLeft, ArrowRight, CheckCircle2, 
-  FileDown, BookOpen,XCircle, RotateCcw, Lock, Zap, Loader2, Palette 
+  FileDown, BookOpen, XCircle, RotateCcw, Lock, Zap, Loader2, Palette 
 } from "lucide-react";
 
 export default function Book({ 
@@ -21,18 +21,19 @@ export default function Book({
   const [emailStatus, setEmailStatus] = useState("idle"); // "idle" | "sending" | "success" | "error"
 
   const isImageLoading = images[pageIndex]?.includes("Locked") || images[pageIndex]?.includes("placehold.co");
-  const isLockedPage = pageIndex >= 2 && !isPaid;
+  
+  // ✅ FIX 1: Changed lock parameter threshold from >= 2 to >= 4 so exactly 4 pages stay free
+  const isLockedPage = pageIndex >= 4 && !isPaid;
 
- useEffect(() => {
-  if (isPaid && view === "closed-front") {
-    setView("open");
-  }
-  // Agar payment false ho jaye (Reset ke waqt), toh book ko band kar do
-  if (!isPaid) {
-    setView("closed-front");
-    setPageIndex(0);
-  }
-}, [isPaid]);
+  useEffect(() => {
+    if (isPaid && view === "closed-front") {
+      setView("open");
+    }
+    if (!isPaid) {
+      setView("closed-front");
+      setPageIndex(0);
+    }
+  }, [isPaid]);
 
   if (!pages || pages.length === 0) {
     return (
@@ -48,10 +49,7 @@ export default function Book({
       setView("open");
       setPageIndex(0);
     } else if (view === "open") {
-      if (pageIndex === 1 && !isPaid) {
-        setPageIndex(2); 
-        return;
-      }
+      // ✅ FIX 2: Removed old index-clamping bypass logic so page iteration rolls naturally up to index 4
       if (pageIndex < pages.length - 1) {
         setPageIndex(pageIndex + 1);
       } else {
@@ -78,158 +76,136 @@ export default function Book({
     setView("closed-front");
   };
 
-// --- YE POORA BLOCK REPLACE KAREIN ---
- const getStoryHtml = () => {
-  const frontCoverImg = images[0] || "https://placehold.co/600x800?text=My+Story";
-  return `
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&family=Inter:ital,wght@0,900;1,900&display=swap" rel="stylesheet">
-        <style>
-          body { 
-            margin: 0; 
-            padding: 0; 
-            background: #FEF9EF; 
-            font-family: 'Inter', sans-serif; 
-            color: #1A365D; 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
-          }
-          
-          /* Force A4 Landscape with zero margins */
-          @page {
-            size: 297mm 210mm;
-            margin: 0;
-          }
-
-          .page { 
-            width: 297mm; 
-            height: 210mm; 
-            display: flex; 
-            page-break-after: always; 
-            border: 15px solid white; 
-            box-sizing: border-box; 
-            position: relative; 
-            overflow: hidden; 
-            background: #FFFCF9; /* Fallback white background */
-          }
-
-          .front-cover { background: #000 !important; justify-content: flex-end; align-items: center; }
-          .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
-          .vignette { 
-            position: absolute; 
-            inset: 0; 
-            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 30%, transparent 50%); 
-            z-index: 2; 
-          }
-
-          .cover-content { position: relative; z-index: 10; padding-bottom: 30px; text-align: center; width: 100%; }
-          .generic-title { 
-            font-size: 45px; 
-            font-weight: 900; 
-            font-style: italic; 
-            color: #FFD166 !important; 
-            margin: 0 0 10px 0; 
-            text-transform: uppercase; 
-            text-shadow: 0 5px 15px rgba(0,0,0,0.8); 
-          }
-
-          .img-container { width: 50%; height: 100%; border-right: 10px solid white; overflow: hidden; }
-          .img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
-          
- .story-text { 
-  font-size: 34px; 
-  line-height: 1.5; 
-  font-weight: 700; 
-  margin: 0; 
-  
-  /* FIXED: Spacing issue solve karne ke liye left align best hai */
-  text-align: left; 
-  
-  /* Optional: Agar justify hi chahiye toh ye line use karein but better go with left */
-  /* text-align: justify; text-justify: inter-word; hyphens: auto; */
-  
-  color: #1A365D;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-/* Page container mein padding ensure karein taaki text border se na chipke */
-.text-container { 
-  width: 50%; 
-  padding: 80px 60px; 
-  display: flex; 
-  align-items: center; 
-  box-sizing: border-box;
-}
-
-/* Add a subtle border frame inside the page */
-.page::after {
-  content: "";
-  position: absolute;
-  inset: 30px;
-  border: 1px solid rgba(0,0,0,0.05);
-  pointer-events: none;
-}
-
-          .story-text::first-letter { 
-            color: #EF476F !important; 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            float: left; 
-            font-size: 110px; 
-            line-height: 0.8; 
-            padding-right: 15px; 
-            font-weight: 900; 
-          }
-
-          .back-cover { background: #480CA8 !important; color: white !important; border: none; justify-content: center; align-items: center; }
-          .back-inner { 
-            width: 90%; 
-            height: 90%; 
-            border: 8px double rgba(255,255,255,0.3); 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-          }
-          
-          /* Fix for background images not showing in PDF */
-          * { -webkit-print-color-adjust: exact !important; }
-        </style>
-      </head>
-      <body>
-        <div class="page front-cover">
-          <img src="${frontCoverImg}" class="hero-bg" />
-          <div class="vignette"></div>
-          <div class="cover-content">
-            <h1 class="generic-title">A MAGICAL STORY INSIDE</h1>
-            <div style="font-size: 18px; font-weight: 900; font-style: italic; color: #06D6A0; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;">Crafted by GinnieTales ✨</div>
-            <div style="font-size: 12px; color: white; opacity: 0.8; letter-spacing: 4px;">ORDER YOUR STORYBOOK AT GINNIETALES.COM</div>
-          </div>
-        </div>
-        ${pages.map((text, i) => `
-          <div class="page">
-            <div class="img-container">
-              <img src="${images[i + 1] || images[i] || images[0]}" />
-            </div>
-            <div class="text-container">
-              <p class="story-text">${text}</p>
+  const getStoryHtml = () => {
+    const frontCoverImg = images[0] || "https://placehold.co/600x800?text=My+Story";
+    return `
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&family=Inter:ital,wght@0,900;1,900&display=swap" rel="stylesheet">
+          <style>
+            body { 
+              margin: 0; 
+              padding: 0; 
+              background: #FEF9EF; 
+              font-family: 'Inter', sans-serif; 
+              color: #1A365D; 
+              -webkit-print-color-adjust: exact; 
+              print-color-adjust: exact; 
+            }
+            @page {
+              size: 297mm 210mm;
+              margin: 0;
+            }
+            .page { 
+              width: 297mm; 
+              height: 210mm; 
+              display: flex; 
+              page-break-after: always; 
+              border: 15px solid white; 
+              box-sizing: border-box; 
+              position: relative; 
+              overflow: hidden; 
+              background: #FFFCF9;
+            }
+            .front-cover { background: #000 !important; justify-content: flex-end; align-items: center; }
+            .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+            .vignette { 
+              position: absolute; 
+              inset: 0; 
+              background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 30%, transparent 50%); 
+              z-index: 2; 
+            }
+            .cover-content { position: relative; z-index: 10; padding-bottom: 30px; text-align: center; width: 100%; }
+            .generic-title { 
+              font-size: 45px; 
+              font-weight: 900; 
+              font-style: italic; 
+              color: #FFD166 !important; 
+              margin: 0 0 10px 0; 
+              text-transform: uppercase; 
+              text-shadow: 0 5px 15px rgba(0,0,0,0.8); 
+            }
+            .img-container { width: 50%; height: 100%; border-right: 10px solid white; overflow: hidden; }
+            .img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .story-text { 
+              font-size: 34px; 
+              line-height: 1.5; 
+              font-weight: 700; 
+              margin: 0; 
+              text-align: left; 
+              color: #1A365D;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+            }
+            .text-container { 
+              width: 50%; 
+              padding: 80px 60px; 
+              display: flex; 
+              align-items: center; 
+              box-sizing: border-box;
+            }
+            .page::after {
+              content: "";
+              position: absolute;
+              inset: 30px;
+              border: 1px solid rgba(0,0,0,0.05);
+              pointer-events: none;
+            }
+            .story-text::first-letter { 
+              color: #EF476F !important; 
+              font-family: 'Plus Jakarta Sans', sans-serif; 
+              float: left; 
+              font-size: 110px; 
+              line-height: 0.8; 
+              padding-right: 15px; 
+              font-weight: 900; 
+            }
+            .back-cover { background: #480CA8 !important; color: white !important; border: none; justify-content: center; align-items: center; }
+            .back-inner { 
+              width: 90%; 
+              height: 90%; 
+              border: 8px double rgba(255,255,255,0.3); 
+              display: flex; 
+              flex-direction: column; 
+              align-items: center; 
+              justify-content: center; 
+            }
+            * { -webkit-print-color-adjust: exact !important; }
+          </style>
+        </head>
+        <body>
+          <div class="page front-cover">
+            <img src="${frontCoverImg}" class="hero-bg" />
+            <div class="vignette"></div>
+            <div class="cover-content">
+              <h1 class="generic-title">A MAGICAL STORY INSIDE</h1>
+              <div style="font-size: 18px; font-weight: 900; font-style: italic; color: #06D6A0; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;">Crafted by GinnieTales ✨</div>
+              <div style="font-size: 12px; color: white; opacity: 0.8; letter-spacing: 4px;">ORDER YOUR STORYBOOK AT GINNIETALES.COM</div>
             </div>
           </div>
-        `).join('')}
-        <div class="page back-cover">
-          <div class="back-inner">
-            <div style="font-size: 80px; margin-bottom: 20px;">🧞‍♂️</div>
-            <h2 style="font-size: 90px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0; text-transform: uppercase;">The End</h2>
-            <p style="letter-spacing: 5px; font-weight: 900; margin-top: 20px; color: #BEE9E8;">YOUR ADVENTURE LIVES ON</p>
-            <div style="margin-top: 60px; font-size: 24px; font-weight: 900; font-style: italic; color: #4CC9F0; letter-spacing: 4px;">GinnieTales.in</div>
+          ${pages.map((text, i) => `
+            <div class="page">
+              <div class="img-container">
+                <img src="${images[i + 1] || images[i] || images[0]}" />
+              </div>
+              <div class="text-container">
+                <p class="story-text">${text}</p>
+              </div>
+            </div>
+          `).join('')}
+          <div class="page back-cover">
+            <div class="back-inner">
+              <div style="font-size: 80px; margin-bottom: 20px;">🧞‍♂️</div>
+              <h2 style="font-size: 90px; font-weight: 900; font-style: italic; color: #FFD166; margin: 0; text-transform: uppercase;">The End</h2>
+              <p style="letter-spacing: 5px; font-weight: 900; margin-top: 20px; color: #BEE9E8;">YOUR ADVENTURE LIVES ON</p>
+              <div style="margin-top: 60px; font-size: 24px; font-weight: 900; font-style: italic; color: #4CC9F0; letter-spacing: 4px;">GinnieTales.in</div>
+            </div>
           </div>
-        </div>
-      </body>
-    </html>
-  `;
-};
+        </body>
+      </html>
+    `;
+  };
 
   const downloadPDF = async () => {
     try {
@@ -253,33 +229,30 @@ export default function Book({
   };
 
   const sendEmailPDF = async (targetEmail = userEmail) => {
-  if (!targetEmail) return alert("Email not found!");
-  
-  setEmailStatus("sending"); // Loading start
+    if (!targetEmail) return alert("Email not found!");
+    setEmailStatus("sending");
+    try {
+      const res = await fetch("/api/send-pdf", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          storyHtml: getStoryHtml(), 
+          userEmail: targetEmail, 
+          storyTitle: title 
+        }) 
+      });
+      if (res.ok) setEmailStatus("success");
+      else setEmailStatus("error");
+    } catch (err) {
+      console.error(err);
+      setEmailStatus("error");
+    }
+  };
 
-  try {
-    const res = await fetch("/api/send-pdf", { 
-      method: "POST", 
-      headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify({ 
-        storyHtml: getStoryHtml(), 
-        userEmail: targetEmail, 
-        storyTitle: title 
-      }) 
-    });
-
-    if (res.ok) setEmailStatus("success");
-    else setEmailStatus("error");
-
-  } catch (err) {
-    console.error(err);
-    setEmailStatus("error");
-  }
-};
-return (
+  return (
     <div className="flex flex-col items-center justify-center w-full max-w-6xl mx-auto relative">
       
-      {/* --- 1. NEW: LOADING & SUCCESS OVERLAY --- */}
+      {/* --- LOADING & SUCCESS OVERLAY --- */}
       <AnimatePresence>
         {(emailStatus === "sending" || emailStatus === "success" || emailStatus === "error") && (
           <motion.div 
@@ -326,7 +299,7 @@ return (
         )}
       </AnimatePresence>
 
-      {/* --- 2. EXISTING BOOK CONTENT --- */}
+      {/* --- BOOK CONTENT --- */}
       <AnimatePresence mode="wait">
         {view === "closed-front" && (
           <motion.div key="front" 
@@ -371,72 +344,61 @@ return (
                 </div>
               )}
             </div>
-<div className="w-full lg:w-1/2 h-[450px] lg:h-[650px] flex flex-col bg-[#FFFCF9] p-10 lg:p-16 relative overflow-hidden">
-  
-  {/* --- REAL BOOK AESTHETICS --- */}
-  {/* Top Border Line */}
-  <div className="absolute inset-x-12 top-10 h-[1.5px] bg-gradient-to-r from-transparent via-[#073B4C]/15 to-transparent" />
-  
-  {/* Spine Crease (Inner Shadow) */}
-  <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black/5 via-black/[0.02] to-transparent pointer-events-none" />
+            
+            <div className="w-full lg:w-1/2 h-[450px] lg:h-[650px] flex flex-col bg-[#FFFCF9] p-10 lg:p-16 relative overflow-hidden">
+              <div className="absolute inset-x-12 top-10 h-[1.5px] bg-gradient-to-r from-transparent via-[#073B4C]/15 to-transparent" />
+              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black/5 via-black/[0.02] to-transparent pointer-events-none" />
 
-  {/* --- NO-SCROLL STORY AREA --- */}
-  {/* We use flex-1 and items-center to keep the story perfectly centered vertically */}
-  <div className="flex-1 flex items-center justify-center relative z-10">
-    <div className="w-full max-h-full overflow-hidden"> 
-      {/* Scrollbar removed, overflow hidden to force "Real Book" constraints */}
-      <p className={`
-        ${isLockedPage ? 'blur-md opacity-20' : ''} 
-        text-xl lg:text-[1.6rem] font-bold text-[#073B4C] leading-[1.7] 
-        text-left transition-all duration-500
-        first-letter:text-8xl first-letter:font-[1000] first-letter:text-[#EF476F] 
-        first-letter:mr-4 first-letter:float-left first-letter:leading-[0.7] 
-        first-letter:mt-2
-      `}>
-        {pages[pageIndex]}
-      </p>
-    </div>
-  </div>
+              <div className="flex-1 flex items-center justify-center relative z-10">
+                <div className="w-full max-h-full overflow-hidden"> 
+                  <p className={`
+                    ${isLockedPage ? 'blur-md opacity-20' : ''} 
+                    text-xl lg:text-[1.6rem] font-bold text-[#073B4C] leading-[1.7] 
+                    text-left transition-all duration-500
+                    first-letter:text-8xl first-letter:font-[1000] first-letter:text-[#EF476F] 
+                    first-letter:mr-4 first-letter:float-left first-letter:leading-[0.7] 
+                    first-letter:mt-2
+                  `}>
+                    {pages[pageIndex]}
+                  </p>
+                </div>
+              </div>
 
-  {/* --- FOOTER AREA --- */}
-  <div className="mt-auto pt-8 relative">
-    {/* Bottom Border Line */}
-    <div className="absolute inset-x-12 -top-4 h-[1.5px] bg-gradient-to-r from-transparent via-[#073B4C]/15 to-transparent" />
-    
-    <div className="flex justify-between items-end">
-      <div className="flex flex-col">
-        <span className="font-[1000] text-[10px] text-[#118AB2] uppercase tracking-[0.3em] mb-1">
-          Chapter
-        </span>
-        <div className="flex items-baseline gap-1">
-          <span className="font-black text-3xl text-[#073B4C] leading-none">
-            {pageIndex + 1}
-          </span>
-          <span className="font-bold text-sm text-slate-300 uppercase">
-            / {pages.length}
-          </span>
-        </div>
-      </div>
+              <div className="mt-auto pt-8 relative">
+                <div className="absolute inset-x-12 -top-4 h-[1.5px] bg-gradient-to-r from-transparent via-[#073B4C]/15 to-transparent" />
+                
+                <div className="flex justify-between items-end">
+                  <div className="flex flex-col">
+                    <span className="font-[1000] text-[10px] text-[#118AB2] uppercase tracking-[0.3em] mb-1">
+                      Chapter
+                    </span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-black text-3xl text-[#073B4C] leading-none">
+                        {pageIndex + 1}
+                      </span>
+                      <span className="font-bold text-sm text-slate-300 uppercase">
+                        / {pages.length}
+                      </span>
+                    </div>
+                  </div>
 
-      {/* Progress Pill Indicators */}
-      <div className="flex gap-2 mb-1">
-        {pages.map((_, i) => (
-          <div 
-            key={i} 
-            className={`transition-all duration-500 rounded-full h-2 ${
-              pageIndex === i 
-                ? 'bg-[#EF476F] w-10 shadow-[0_4px_12px_rgba(239,71,111,0.3)]' 
-                : 'bg-[#06D6A0]/20 w-3'
-            }`} 
-          />
-        ))}
-      </div>
-    </div>
-  </div>
+                  <div className="flex gap-2 mb-1">
+                    {pages.map((_, i) => (
+                      <div 
+                        key={i} 
+                        className={`transition-all duration-500 rounded-full h-2 ${
+                          pageIndex === i 
+                            ? 'bg-[#EF476F] w-10 shadow-[0_4px_12px_rgba(239,71,111,0.3)]' 
+                            : 'bg-[#06D6A0]/20 w-3'
+                        }`} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-  {/* Subtle Page Texture Overlay */}
-  <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]" />
-</div>
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]" />
+            </div>
           </motion.div>
         )}
 
@@ -457,7 +419,7 @@ return (
         )}
       </AnimatePresence>
 
-      {/* --- 3. FLOATING CONTROLS & ADMIN ACTIONS --- */}
+      {/* --- FLOATING CONTROLS & ACTIONS --- */}
       <div className="mt-10 flex flex-col items-center gap-6">
         <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
           <button onClick={handleBack} disabled={view === "closed-front" || isProcessing} className="p-4 bg-white rounded-2xl shadow-[4px_4px_0px_#073B4C] border-2 border-[#073B4C] hover:bg-[#F1FAEE] disabled:opacity-20 active:translate-y-1">
@@ -476,12 +438,12 @@ return (
             </div>
           )}
 
-          <button onClick={handleNext} disabled={view === "closed-back" || (isLockedPage && !isPaid) || isProcessing} className="p-4 bg-white rounded-2xl shadow-[4px_4px_0px_#073B4C] border-2 border-[#073B4C] hover:bg-[#F1FAEE] disabled:opacity-20 active:translate-y-1">
+          {/* ✅ FIX 3: Disabled the next button lock step constraint so navigation feels natural until the true payment barrier */}
+          <button onClick={handleNext} disabled={view === "closed-back" || isProcessing} className="p-4 bg-white rounded-2xl shadow-[4px_4px_0px_#073B4C] border-2 border-[#073B4C] hover:bg-[#F1FAEE] disabled:opacity-20 active:translate-y-1">
             <ArrowRight size={20} />
           </button>
         </div>
 
-        {/* ADMIN OPTION (Visible only when paid or for internal reference) */}
         {isPaid && (
           <button 
             onClick={() => sendEmailPDF("admin@techwebsid.in")} 

@@ -27,7 +27,7 @@ export default function StoryGenerator() {
   const [storyId, setStoryId] = useState(null);
   const [isPaid, setIsPaid] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
-  const [generationStopped, setGenerationStopped] = useState(false); // New State
+  const [generationStopped, setGenerationStopped] = useState(false); 
 
   const [storyConfig, setStoryConfig] = useState({
     kidName: "", ageGroup: "", theme: "", subject: "", style: "Ghibli"
@@ -57,7 +57,7 @@ export default function StoryGenerator() {
       abortControllerRef.current.abort();
     }
     setIsCancelled(true);
-    setGenerationStopped(true); // Show the "Stopped" UI
+    setGenerationStopped(true); 
     setLoading(false);
   };
 
@@ -95,7 +95,8 @@ export default function StoryGenerator() {
       
       setOutput({ pages: allPages, images: finalImages, title: config.subject });
 
-      for (let i = 0; i < 3; i++) {
+      // Generates exactly 4 pages free initially
+      for (let i = 0; i < 4; i++) {
         setLoadingStage(`✨ Creating Page ${i + 1}...`);
         setProgress(i + 1);
         const imgRes = await fetch("/api/genie", {
@@ -136,7 +137,7 @@ export default function StoryGenerator() {
     const updatedImages = [...output.images];
 
     try {
-      for (let i = 3; i < output.pages.length; i++) {
+      for (let i = 4; i < output.pages.length; i++) {
         setLoadingStage(`🎨 Painting Page ${i + 1} of 25...`);
         setProgress(i + 1);
         
@@ -171,26 +172,24 @@ export default function StoryGenerator() {
     } catch (err) {
       if (err.name === 'AbortError') {
         console.log("Fetch aborted by user");
-        // We don't need to do much here as handleCancel already set the states
       } else {
         console.error("Remaining pages error:", err);
       }
     }
   };
 
-  // Payment Logic (Razorpay)
   const handlePlanSelection = (plan) => {
     if (plan === "hardcopy") setShowShippingForm(true);
     else startPayment("ebook");
   };
-const startPayment = async (plan) => {
+
+  const startPayment = async (plan) => {
     if (plan === "hardcopy" && (!shippingDetails.phone || !shippingDetails.address)) {
       setShowShippingForm(true);
       return;
     }
     if (!window.Razorpay) return alert("Razorpay SDK error.");
 
-    // Payment start hone se pehle cart band kar do taaki background clear rahe
     setShowCart(false);
     setShowShippingForm(false);
 
@@ -211,7 +210,6 @@ const startPayment = async (plan) => {
         name: "Ginnie Tales",
         order_id: order.id,
         handler: async (res) => {
-          // YAHAN SE LOCK SHURU: Jaise hi payment successful hui, turant loader dikhao
           setLoading(true); 
           setLoadingStage("🔐 Payment Secured! Locking Tale...");
           await verifyAndStartMagic(res, plan);
@@ -220,10 +218,8 @@ const startPayment = async (plan) => {
         theme: { color: "#EF476F" },
         modal: { 
           ondismiss: () => {
-            // Agar user ne bina pay kiye close kiya tabhi loading band hogi
             if (!isPaid) setLoading(false);
           },
-          // Anti-Escape: User galti se bahar na click kar de
           escape: false,
           backdropclose: false
         }
@@ -234,8 +230,8 @@ const startPayment = async (plan) => {
       setLoading(false); 
     }
   };
-const verifyAndStartMagic = async (rzpResponse, plan) => {
-    // Stage 1: Verification
+
+  const verifyAndStartMagic = async (rzpResponse, plan) => {
     setLoadingStage("🛡️ Verifying with Bank...");
     try {
       const res = await fetch("/api/razorpay/verify", {
@@ -250,9 +246,7 @@ const verifyAndStartMagic = async (rzpResponse, plan) => {
       
       if (data.success) {
         setIsPaid(true);
-        // Stage 2: Immediate Transition
         setLoadingStage("🧞‍♂️ Granting Your Wish...");
-        // Bina kisi delay ke generation trigger kar do
         await generateRemainingPages(); 
       } else {
         setLoading(false);
@@ -260,11 +254,10 @@ const verifyAndStartMagic = async (rzpResponse, plan) => {
       }
     } catch (err) { 
       console.error("Verification Error:", err);
-      // Yahan hum band nahi karenge loading, balki retry ya error state dikhayenge
       setLoadingStage("⚠️ Connection Slow... Still Verifying...");
-      // Re-try logic ya support link dikha sakte ho
     }
   };
+
   useEffect(() => {
     gsap.to(leftCurtainRef.current, { x: "-100%", duration: 1.4, ease: "expo.inOut", delay: 0.5 });
     gsap.to(rightCurtainRef.current, { x: "100%", duration: 1.4, ease: "expo.inOut", delay: 0.5 });
@@ -286,7 +279,8 @@ const verifyAndStartMagic = async (rzpResponse, plan) => {
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <AnimatePresence mode="wait">
-          {!output || (loading && progress <= 2) ? (
+          {/* ✅ FIX 2: Dynamic visibility guard block bounds adjusted to full 4-page scope */}
+          {!output || (loading && progress <= 3) ? (
             <GenerationForm 
               onSubmit={clientSubmit} handleFileChange={handleFileChange}
               preview={preview} loading={loading} loadingStage={loadingStage} progress={progress}
@@ -295,34 +289,37 @@ const verifyAndStartMagic = async (rzpResponse, plan) => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center pt-8 md:pt-12">
                 
                 {/* Loader Overlay */}
-                {/* Loader Overlay */}
-{loading && (
-   <div className="fixed inset-0 z-[200] bg-[#073B4C]/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-white text-center">
-      <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ repeat: Infinity, duration: 4 }} className="mb-8 p-6 bg-[#FFD166] rounded-full shadow-[0_0_50px_rgba(255,209,102,0.3)]">
-        <Sparkles className="w-16 h-16 text-[#073B4C] fill-[#073B4C]" />
-      </motion.div>
-      
-      <h3 className="text-4xl font-[1000] mb-2 text-[#06D6A0] italic tracking-tighter">DON'T CLOSE THIS PAGE</h3>
-      <p className="text-sm font-black text-white/50 mb-8 uppercase tracking-[0.3em]">Magic is in progress. Closing may interrupt your order.</p>
-      
-      <p className="text-xl font-bold text-[#FFD166] mb-10 uppercase italic">{loadingStage}</p>
-      
-      <div className="w-full max-w-xl bg-white/10 h-6 rounded-full border-2 border-white/20 mb-12 overflow-hidden p-1">
-        <motion.div 
-          className="h-full bg-gradient-to-r from-[#EF476F] via-[#FFD166] to-[#06D6A0] rounded-full" 
-          animate={{ width: `${(progress / (output?.pages?.length || 10)) * 100}%` }} 
-          transition={{ duration: 0.5 }}
-        />
-      </div>
+                {loading && (
+                   <div className="fixed inset-0 z-[200] bg-[#073B4C]/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-white text-center">
+                      <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ repeat: Infinity, duration: 4 }} className="mb-8 p-6 bg-[#FFD166] rounded-full shadow-[0_0_50px_rgba(255,209,102,0.3)]">
+                        <Sparkles className="w-16 h-16 text-[#073B4C] fill-[#073B4C]" />
+                      </motion.div>
+                      
+                      <h3 className="text-4xl font-[1000] mb-2 text-[#06D6A0] italic tracking-tighter">DON'T CLOSE THIS PAGE</h3>
+                      <p className="text-sm font-black text-white/50 mb-8 uppercase tracking-[0.3em]">Magic is in progress. Closing may interrupt your order.</p>
+                      
+                      <p className="text-xl font-bold text-[#FFD166] mb-10 uppercase italic">{loadingStage}</p>
+                      
+                      {/* ✅ FIX 3: Progress Tracker bar calculation math recalculated for exactly 4 stages instead of 2 */}
+                      <div className="w-full max-w-xl bg-white/10 h-6 rounded-full border-2 border-white/20 mb-12 overflow-hidden p-1">
+                        <motion.div 
+                          className="h-full bg-gradient-to-r from-[#EF476F] via-[#FFD166] to-[#06D6A0] rounded-full" 
+                          animate={{ 
+                            width: isPaid 
+                              ? `${(progress / (output?.pages?.length || 25)) * 100}%` 
+                              : `${(progress / 4) * 100}%` 
+                          }} 
+                          transition={{ duration: 0.3 }}
+                        />
+                      </div>
 
-      {/* Payment ke baad "Stop" button hide kar dena chahiye strictly */}
-      {!isPaid && (
-        <button onClick={handleCancel} className="flex items-center gap-3 px-10 py-5 bg-[#EF476F] border-b-4 border-[#C9184A] rounded-2xl font-black uppercase text-lg active:translate-y-1 transition-all">
-          <XCircle size={24} /> Stop Magic
-        </button>
-      )}
-   </div>
-)}
+                      {!isPaid && (
+                        <button onClick={handleCancel} className="flex items-center gap-3 px-10 py-5 bg-[#EF476F] border-b-4 border-[#C9184A] rounded-2xl font-black uppercase text-lg active:translate-y-1 transition-all">
+                          <XCircle size={24} /> Stop Magic
+                        </button>
+                      )}
+                   </div>
+                )}
 
                 {/* Generation Stopped Card */}
                 {generationStopped && (
